@@ -21,6 +21,14 @@
 
 var scene, camera, renderer;
 var geometry, material, mesh;
+var inactiveBlocks=[]; //16 wide by 10 height as on PSP
+var player = {};
+var width=16;
+var height=10;
+
+var keys = []; //Key Binding
+window.onkeyup = function(e) {keys[e.keyCode]=false; player.movelock=false; player.spinlock=false;}
+window.onkeydown = function(e) {keys[e.keyCode]=true; console.log('key down ' + e.keyCode);}
 
 init();
 animate();
@@ -35,34 +43,50 @@ function init() {
     geometry = new THREE.BoxGeometry( 200, 200, 200 );
     material = new THREE.MeshPhongMaterial( { color: 0xff0000, wireframe: false } );
 
+    player.x=width/2;
+    player.y=2;
+
+    //setup player block 
+    player.group = new THREE.Object3D();//create an empty container
     mesh = new THREE.Mesh( geometry, material );
-    scene.add( mesh );
-
-	geometry = new THREE.BoxGeometry( 200, 200, 200 );
+    player.group.add(mesh);
+	
     mesh = new THREE.Mesh( geometry, material );
-    scene.add( mesh );
+    mesh.position.x+=220;
+    player.group.add(mesh);
+
+    mesh = new THREE.Mesh( geometry, material );
+    mesh.position.x+=220;
+    mesh.position.y-=220;
+    player.group.add(mesh);
+
+    mesh = new THREE.Mesh( geometry, material );
+    mesh.position.y-=220;
+    player.group.add(mesh);
+
+    scene.add( player.group );//when done, add the group to the scene
 
 
-    renderer = new THREE.WebGLRenderer({ antialias: true });
+    renderer = new THREE.WebGLRenderer({ antialias: false });
     renderer.setSize( window.innerWidth, window.innerHeight );
 
     //lights
     var lights = [];
-			lights[ 0 ] = new THREE.PointLight( 0xffffff, 1, 0 );
-			lights[ 1 ] = new THREE.PointLight( 0xffffff, 1, 0 );
-			lights[ 2 ] = new THREE.PointLight( 0xffffff, 1, 0 );
-			lights[ 3 ] = new THREE.PointLight( 0xffffff, 1, 0 );
+	lights[ 0 ] = new THREE.PointLight( 0xffffff, 1, 0 );
+	lights[ 1 ] = new THREE.PointLight( 0xffffff, 1, 0 );
+	lights[ 2 ] = new THREE.PointLight( 0xffffff, 1, 0 );
+	lights[ 3 ] = new THREE.PointLight( 0xffffff, 1, 0 );
 
 
-			lights[ 0 ].position.set( 0, 200, 0 );
-			lights[ 1 ].position.set( 100, 200, 100 );
-			lights[ 2 ].position.set( - 100, 100, 200 );
-			lights[ 3 ].position.set( 100, - 200, - 100 );
+	lights[ 0 ].position.set( 0, 200, 0 );
+	lights[ 1 ].position.set( 100, 200, 100 );
+	lights[ 2 ].position.set( - 100, 100, 200 );
+	lights[ 3 ].position.set( 100, - 200, - 100 );
 
-			scene.add( lights[ 0 ] );
-			scene.add( lights[ 1 ] );
-			scene.add( lights[ 2 ] );
-			scene.add( lights[ 3 ] );
+	scene.add( lights[ 0 ] );
+	scene.add( lights[ 1 ] );
+	scene.add( lights[ 2 ] );
+	scene.add( lights[ 3 ] );
 
   
 
@@ -70,16 +94,36 @@ function init() {
 
 }
 
+function handleInput(){
+	if (keys[37] && !player.locked ){	//Left arrow
+		player.x--;
+		player.locked=true;
+	}
+	if (keys[39] && !player.locked){	//Right arrow
+		player.x++;
+		player.locked=true;
+	}
+
+}
+
+function updateGame(){
+	// mesh.rotation.x += 0.01;
+	//Handle Input First
+	handleInput()
+
+}
+
 function animate() {
 
     requestAnimationFrame( animate );
 
-    mesh.rotation.x += 0.01;
-    // mesh.rotation.y += 0.02;
-
+    updateGame()
+    
     renderer.render( scene, camera );
 
 }
+
+
 
 		</script>
 
