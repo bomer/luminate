@@ -25,6 +25,10 @@ var inactiveBlocks=[]; //16 wide by 10 height as on PSP
 var player = {};
 var width=16;
 var height=10;
+var debugtext;
+var dropspeed=90;
+var dropcounter=0;
+
 
 var keys = []; //Key Binding
 window.onkeyup = function(e) {keys[e.keyCode]=false; player.movelock=false; player.spinlock=false;}
@@ -35,33 +39,44 @@ animate();
 
 function init() {
 
+	//player.init
+	player.blocksize=window.innerWidth / width;
+	player.lockcount=0;
 	//Camera
     scene = new THREE.Scene();
-    camera = new THREE.PerspectiveCamera( 75, window.innerWidth / window.innerHeight, 1, 10000 );
+    camera = new THREE.PerspectiveCamera( 60, window.innerWidth / window.innerHeight, 1, 10000 );
     camera.position.z = 1000;
 
-    geometry = new THREE.BoxGeometry( 200, 200, 200 );
+    geometry = new THREE.BoxGeometry( player.blocksize, player.blocksize, player.blocksize );
     material = new THREE.MeshPhongMaterial( { color: 0xff0000, wireframe: false } );
 
-    player.x=width/2;
-    player.y=2;
+    // player.x=width/2;
+    // player.y=2;
 
     //setup player block 
-    player.group = new THREE.Object3D();//create an empty container
+    player.group = new THREE.Object3D();//create an empty container    
     mesh = new THREE.Mesh( geometry, material );
+    mesh.position.x-=player.blocksize/2;
+    mesh.position.y+=player.blocksize/2;
     player.group.add(mesh);
 	
     mesh = new THREE.Mesh( geometry, material );
-    mesh.position.x+=220;
+    mesh.position.x+=player.blocksize * 1.1;
+    mesh.position.x-=player.blocksize/2;
+    mesh.position.y+=player.blocksize/2;
     player.group.add(mesh);
 
     mesh = new THREE.Mesh( geometry, material );
-    mesh.position.x+=220;
-    mesh.position.y-=220;
+    mesh.position.x-=player.blocksize/2;
+    mesh.position.y+=player.blocksize/2;
+    mesh.position.x+=player.blocksize * 1.1;
+    mesh.position.y-=player.blocksize * 1.1;
     player.group.add(mesh);
 
     mesh = new THREE.Mesh( geometry, material );
-    mesh.position.y-=220;
+    mesh.position.x-=player.blocksize/2;
+    mesh.position.y+=player.blocksize/2;
+    mesh.position.y-=player.blocksize * 1.1;
     player.group.add(mesh);
 
     scene.add( player.group );//when done, add the group to the scene
@@ -88,6 +103,18 @@ function init() {
 	scene.add( lights[ 2 ] );
 	scene.add( lights[ 3 ] );
 
+	debugtext = document.createElement('div');
+debugtext.style.position = 'absolute';
+//debugtext.style.zIndex = 1;    // if you still don't see the label, try uncommenting this
+debugtext.style.width = 32;
+debugtext.style.height = 32;
+debugtext.style.color="white";
+// debugtext.style.backgroundColor = "blue";
+debugtext.innerHTML = "hi there!";
+debugtext.style.top = 32 + 'px';
+debugtext.style.left = 32 + 'px';
+document.body.appendChild(debugtext);
+
   
 
     document.body.appendChild( renderer.domElement );
@@ -95,14 +122,22 @@ function init() {
 }
 
 function handleInput(){
-	if (keys[37] && !player.locked ){	//Left arrow
-		player.x--;
-		player.locked=true;
+	// console.log('input');
+	if (player.lockcount == 0){
+		if (keys[37] && player.group.position.x/player.blocksize >-9){	//Left arrow
+			console.log(" Left player.x = " +player.x);
+			player.group.position.x-=player.blocksize;
+			player.lockcount=5;
+		}
+		if (keys[39] && player.group.position.x/player.blocksize <9){	//Right arrow
+			console.log("Right player.x = " +player.x);
+			player.group.position.x+=player.blocksize;
+			player.lockcount=5;
+		}
 	}
-	if (keys[39] && !player.locked){	//Right arrow
-		player.x++;
-		player.locked=true;
-	}
+	if (player.lockcount > 0)
+		player.lockcount--;
+	debugtext.innerHTML = "x: " +  player.group.position.x/player.blocksize + "  y:" + player.group.position.y/player.blocksize;
 
 }
 
@@ -110,6 +145,15 @@ function updateGame(){
 	// mesh.rotation.x += 0.01;
 	//Handle Input First
 	handleInput()
+
+	dropcounter++;
+	if(dropcounter>dropspeed){
+		player.group.position.y-=player.blocksize;
+		dropcounter=0;
+		if(player.group.position.y/player.blocksize==-5){ //bottom
+
+		}
+	}
 
 }
 
