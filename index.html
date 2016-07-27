@@ -21,12 +21,12 @@
 
 var scene, camera, renderer;
 var geometry, material, mesh;
-var inactiveBlocks=[]; //16 wide by 10 height as on PSP
+var inactiveBlocks;// = []; //16 wide by 10 height as on PSP
 var player = {};
 var width=16;
 var height=10;
 var debugtext;
-var dropspeed=90;
+var dropspeed=15;
 var dropcounter=0;
 
 
@@ -52,9 +52,12 @@ function init() {
 
     // player.x=width/2;
     // player.y=2;
+    //Empty blocks
+    inactiveBlocks = new THREE.Object3D();
 
     //setup player block 
-    player.group = new THREE.Object3D();//create an empty container    
+    player.group = new THREE.Object3D();//create an empty container 
+    player.group.position.y=player.blocksize*3   
     mesh = new THREE.Mesh( geometry, material );
     mesh.position.x-=player.blocksize/2;
     mesh.position.y+=player.blocksize/2;
@@ -80,6 +83,7 @@ function init() {
     player.group.add(mesh);
 
     scene.add( player.group );//when done, add the group to the scene
+    scene.add(inactiveBlocks);
 
 
     renderer = new THREE.WebGLRenderer({ antialias: false });
@@ -99,23 +103,21 @@ function init() {
 	lights[ 3 ].position.set( 100, - 200, - 100 );
 
 	scene.add( lights[ 0 ] );
-	scene.add( lights[ 1 ] );
+	// scene.add( lights[ 1 ] );
 	scene.add( lights[ 2 ] );
 	scene.add( lights[ 3 ] );
 
 	debugtext = document.createElement('div');
-debugtext.style.position = 'absolute';
-//debugtext.style.zIndex = 1;    // if you still don't see the label, try uncommenting this
-debugtext.style.width = 32;
-debugtext.style.height = 32;
-debugtext.style.color="white";
-// debugtext.style.backgroundColor = "blue";
-debugtext.innerHTML = "hi there!";
-debugtext.style.top = 32 + 'px';
-debugtext.style.left = 32 + 'px';
-document.body.appendChild(debugtext);
-
-  
+	debugtext.style.position = 'absolute';
+	//debugtext.style.zIndex = 1;    // if you still don't see the label, try uncommenting this
+	debugtext.style.width = 32;
+	debugtext.style.height = 32;
+	debugtext.style.color="white";
+	// debugtext.style.backgroundColor = "blue";
+	debugtext.innerHTML = "hi there!";
+	debugtext.style.top = 32 + 'px';
+	debugtext.style.left = 32 + 'px';
+	document.body.appendChild(debugtext);	  
 
     document.body.appendChild( renderer.domElement );
 
@@ -126,12 +128,12 @@ function handleInput(){
 	if (player.lockcount == 0){
 		if (keys[37] && player.group.position.x/player.blocksize >-9){	//Left arrow
 			console.log(" Left player.x = " +player.x);
-			player.group.position.x-=player.blocksize;
+			player.group.position.x-=player.blocksize*1.1;
 			player.lockcount=5;
 		}
 		if (keys[39] && player.group.position.x/player.blocksize <9){	//Right arrow
 			console.log("Right player.x = " +player.x);
-			player.group.position.x+=player.blocksize;
+			player.group.position.x+=player.blocksize * 1.1;
 			player.lockcount=5;
 		}
 	}
@@ -148,9 +150,11 @@ function updateGame(){
 
 	dropcounter++;
 	if(dropcounter>dropspeed){
-		player.group.position.y-=player.blocksize;
+		player.group.position.y-=player.blocksize * 1.1;
 		dropcounter=0;
-		if(player.group.position.y/player.blocksize==-5){ //bottom
+		if(player.group.position.y/player.blocksize<=-4){ //bottom
+			inactiveBlocks.add(player.group.clone());
+			player.group.position.y=player.blocksize*3;
 
 		}
 	}
