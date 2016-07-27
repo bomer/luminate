@@ -152,6 +152,20 @@ function updateGame(){
 	if(dropcounter>dropspeed){
 		player.group.position.y-=player.blocksize * 1.1;
 		dropcounter=0;
+
+		//Hit detection main block
+		var mess = inactiveBlocks.children;
+		for (var i = 0; i < mess.length; i++) {
+			var xdif=mess[i].position.x - player.group.position.x;
+			var ydif=mess[i].position.y - player.group.position.y;
+			if(xdif<player.blocksize*2.2 && xdif>-player.blocksize*2.2 && ydif<player.blocksize*2.2 && ydif>-player.blocksize*2.2 ){
+				debugtext.innerHTML =  debugtext.innerHTML + "HIT!!!";
+				inactiveBlocks.add(player.group.clone());
+				player.group.position.y=player.blocksize*3;
+
+			}
+		}
+
 		if(player.group.position.y/player.blocksize<=-4){ //bottom
 			inactiveBlocks.add(player.group.clone());
 			player.group.position.y=player.blocksize*3;
