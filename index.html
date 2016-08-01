@@ -20,7 +20,7 @@
 		<script>
 
 var scene, camera, renderer;
-var geometry, material, mesh;
+var geometry, material1,material2, mesh;
 var inactiveBlocks;// = []; //16 wide by 10 height as on PSP
 var player = {};
 var width=16;
@@ -46,12 +46,15 @@ function init() {
     scene = new THREE.Scene();
     camera = new THREE.PerspectiveCamera( 60, window.innerWidth / window.innerHeight, 1, 10000 );
     camera.position.z = 1000;
-    camera.position.x = 8 * player.blocksize * 1.1;
+    //Offset from 00 being center
+    camera.position.x = width/2 * player.blocksize ;
+    camera.position.y = height/2 * player.blocksize ;
     // camera.position.z = 1000;
 
-
-    geometry = new THREE.BoxGeometry( player.blocksize, player.blocksize, player.blocksize );
-    material = new THREE.MeshPhongMaterial( { color: 0xff0000, wireframe: false } );
+    var scale=0.95;
+    geometry = new THREE.BoxGeometry( player.blocksize*scale, player.blocksize*scale,player.blocksize*scale);
+    material1 = new THREE.MeshPhongMaterial( { color: 0xff0000, wireframe: false } );
+    material2 = new THREE.MeshPhongMaterial( { color: 0xffffff, wireframe: false } );
 
     
     // player.y=2;
@@ -60,34 +63,34 @@ function init() {
 
     //setup player block 
     player.group = new THREE.Object3D();//create an empty container 
-    player.group.position.y=player.blocksize*3   
-    mesh = new THREE.Mesh( geometry, material );
+    player.group.position.y=player.blocksize*9;     
+    mesh = new THREE.Mesh( geometry, material1 );
     mesh.position.x-=player.blocksize/2;
     mesh.position.y+=player.blocksize/2;
     player.group.add(mesh);
 	
-    mesh = new THREE.Mesh( geometry, material );
-    mesh.position.x+=player.blocksize * 1.1;
+    mesh = new THREE.Mesh( geometry, material1 );
+    mesh.position.x+=player.blocksize;
     mesh.position.x-=player.blocksize/2;
     mesh.position.y+=player.blocksize/2;
     player.group.add(mesh);
 
-    mesh = new THREE.Mesh( geometry, material );
+    mesh = new THREE.Mesh( geometry, material1 );
     mesh.position.x-=player.blocksize/2;
     mesh.position.y+=player.blocksize/2;
-    mesh.position.x+=player.blocksize * 1.1;
-    mesh.position.y-=player.blocksize * 1.1;
+    mesh.position.x+=player.blocksize;
+    mesh.position.y-=player.blocksize;
     player.group.add(mesh);
 
-    mesh = new THREE.Mesh( geometry, material );
+    mesh = new THREE.Mesh( geometry, material1 );
     mesh.position.x-=player.blocksize/2;
     mesh.position.y+=player.blocksize/2;
-    mesh.position.y-=player.blocksize * 1.1;
+    mesh.position.y-=player.blocksize;
     player.group.add(mesh);
 
     scene.add( player.group );//when done, add the group to the scene
     scene.add(inactiveBlocks);
-
+    randomColours();
 
     renderer = new THREE.WebGLRenderer({ antialias: false });
     renderer.setSize( window.innerWidth, window.innerHeight );
@@ -99,11 +102,12 @@ function init() {
 	lights[ 2 ] = new THREE.PointLight( 0xffffff, 1, 0 );
 	lights[ 3 ] = new THREE.PointLight( 0xffffff, 1, 0 );
 
-
-	lights[ 0 ].position.set( 0, 200, 0 );
-	lights[ 1 ].position.set( 100, 200, 100 );
-	lights[ 2 ].position.set( - 100, 100, 200 );
-	lights[ 3 ].position.set( 100, - 200, - 100 );
+	var lil=400;
+	var big=800;
+	lights[ 0 ].position.set( 0, width, 0 );
+	lights[ 1 ].position.set( lil, big, lil );
+	lights[ 2 ].position.set( - lil, lil, big );
+	lights[ 3 ].position.set( lil, - big, - lil );
 
 	scene.add( lights[ 0 ] );
 	// scene.add( lights[ 1 ] );
@@ -126,17 +130,32 @@ function init() {
 
 }
 
+function randomColours(){	
+	for (var i = 0; i < player.group.children.length; i++) {
+		if(Math.random()*2>=1.0)
+			player.group.children[i].material=material1;
+		else
+			player.group.children[i].material=material2;
+	}
+}
+function resetBlock(){
+	debugtext.innerHTML =  debugtext.innerHTML + "HIT!!!";
+	inactiveBlocks.add(player.group.clone());
+	player.group.position.y=player.blocksize*height;
+	randomColours()
+}
+
 function handleInput(){
 	// console.log('input');
 	if (player.lockcount == 0){
-		if (keys[37] && player.group.position.x/player.blocksize >-9){	//Left arrow
+		if (keys[37] && player.group.position.x/player.blocksize >0){	//Left arrow
 			console.log(" Left player.x = " +player.x);
-			player.group.position.x-=player.blocksize*1.1;
+			player.group.position.x-=player.blocksize;
 			player.lockcount=5;
 		}
-		if (keys[39] && player.group.position.x/player.blocksize <9){	//Right arrow
+		if (keys[39] && player.group.position.x/player.blocksize <16){	//Right arrow
 			console.log("Right player.x = " +player.x);
-			player.group.position.x+=player.blocksize * 1.1;
+			player.group.position.x+=player.blocksize;
 			player.lockcount=5;
 		}
 	}
@@ -153,7 +172,7 @@ function updateGame(){
 
 	dropcounter++;
 	if(dropcounter>dropspeed){
-		player.group.position.y-=player.blocksize * 1.1;
+		player.group.position.y-=player.blocksize;
 		dropcounter=0;
 
 		//Hit detection main block
@@ -161,18 +180,12 @@ function updateGame(){
 		for (var i = 0; i < mess.length; i++) {
 			var xdif=mess[i].position.x - player.group.position.x;
 			var ydif=mess[i].position.y - player.group.position.y;
-			if(xdif<player.blocksize*2.2 && xdif>-player.blocksize*2.2 && ydif<player.blocksize*2.2 && ydif>-player.blocksize*2.2 ){
-				debugtext.innerHTML =  debugtext.innerHTML + "HIT!!!";
-				inactiveBlocks.add(player.group.clone());
-				player.group.position.y=player.blocksize*3;
-
+			if(xdif<player.blocksize*2 && xdif>-player.blocksize*2 && ydif<player.blocksize*2.1 && ydif>-player.blocksize*2.1 ){
+				resetBlock();
 			}
 		}
-
-		if(player.group.position.y/player.blocksize<=-4){ //bottom
-			inactiveBlocks.add(player.group.clone());
-			player.group.position.y=player.blocksize*3;
-
+		if(player.group.position.y/player.blocksize<=0){ //bottom
+			resetBlock();
 		}
 	}
 
