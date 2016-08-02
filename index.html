@@ -41,7 +41,7 @@ function init() {
 
 	//player.init
 	player.blocksize=window.innerWidth / width;
-	player.lockcount=0;
+	player.lockcount=0,player.spincount=0;
 	//Camera
     scene = new THREE.Scene();
     camera = new THREE.PerspectiveCamera( 60, window.innerWidth / window.innerHeight, 1, 10000 );
@@ -63,7 +63,8 @@ function init() {
 
     //setup player block 
     player.group = new THREE.Object3D();//create an empty container 
-    player.group.position.y=player.blocksize*9;     
+    player.group.position.y=player.blocksize*height; 
+    player.group.position.x=player.blocksize*width/2;     
     mesh = new THREE.Mesh( geometry, material1 );
     mesh.position.x-=player.blocksize/2;
     mesh.position.y+=player.blocksize/2;
@@ -125,7 +126,6 @@ function init() {
 	debugtext.style.top = 32 + 'px';
 	debugtext.style.left = 32 + 'px';
 	document.body.appendChild(debugtext);	  
-
     document.body.appendChild( renderer.domElement );
 
 }
@@ -142,16 +142,48 @@ function resetBlock(){
 	debugtext.innerHTML =  debugtext.innerHTML + "HIT!!!";
 	inactiveBlocks.add(player.group.clone());
 	player.group.position.y=player.blocksize*height;
+	player.group.position.x=player.blocksize*width/2;  
+
+	//Check if player spawn on an existing block. GAME OVER Scenaripo
+	var mess = inactiveBlocks.children;
+	for (var i = 0; i < mess.length; i++) {
+		// if(mess[i].position.x == player.group.position.x)
+		var xdif=mess[i].position.x - player.group.position.x;
+		var ydif=mess[i].position.y - player.group.position.y;
+		if(xdif<player.blocksize*2 && xdif>-player.blocksize*2 && ydif<player.blocksize*2.1 && ydif>-player.blocksize*2.1 ){//hit
+			//GAME OVER - TODO
+			// init();
+		}
+	}
+
 	randomColours()
 }
 
-function handleInput(){
-	// console.log('input');
+function handleInput(){	
 	if (player.lockcount == 0){
+		if (keys[40]){//DOWN arrow, force in update function
+			player.forcedrop=true;
+			player.lockcount=5;
+		}
 		if (keys[37] && player.group.position.x/player.blocksize >0){	//Left arrow
 			console.log(" Left player.x = " +player.x);
-			player.group.position.x-=player.blocksize;
-			player.lockcount=5;
+			
+			//Hit detection
+			var hit = false;
+			var mess = inactiveBlocks.children;
+			for (var i = 0; i < mess.length; i++) {
+				var xdif=mess[i].position.x - player.group.position.x;
+				var ydif=mess[i].position.y - player.group.position.y;
+				console.log( "xdif " + xdif + " and ydif =   " + ydif)
+				if(xdif<player.blocksize*2 && xdif>-player.blocksize*2 && ydif<player.blocksize*2.1 && ydif>-player.blocksize*2.1 ){
+					hit=true;
+				}
+			}
+			if(!hit){
+				player.group.position.x-=player.blocksize;
+				player.lockcount=5;
+			}
+
 		}
 		if (keys[39] && player.group.position.x/player.blocksize <16){	//Right arrow
 			console.log("Right player.x = " +player.x);
@@ -161,6 +193,19 @@ function handleInput(){
 	}
 	if (player.lockcount > 0)
 		player.lockcount--;
+
+	if (player.spincount == 0){
+		if(keys[65] || keys[81] || keys[90]){//Q A Z			
+			player.group.rotation.z+=Math.PI / 2;;		
+			player.spincount=15;			
+		}
+		if(keys[83] || keys[87] ||keys[88]){// W S X
+			player.group.rotation.z-=Math.PI / 2;;		
+			player.spincount=15;			
+		}
+	}
+	if (player.spincount > 0)
+		player.spincount--;
 	debugtext.innerHTML = "x: " +  player.group.position.x/player.blocksize + "  y:" + player.group.position.y/player.blocksize;
 
 }
@@ -171,7 +216,9 @@ function updateGame(){
 	handleInput()
 
 	dropcounter++;
-	if(dropcounter>dropspeed){
+	if(dropcounter>dropspeed || player.forcedrop){
+		if(player.forcedrop)
+			player.forcedrop=false;
 		player.group.position.y-=player.blocksize;
 		dropcounter=0;
 
