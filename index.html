@@ -29,7 +29,7 @@ var debugtext;
 var dropspeed=15;
 var dropcounter=0;
 
-
+var blockdata=[];
 var keys = []; //Key Binding
 window.onkeyup = function(e) {keys[e.keyCode]=false; player.movelock=false; player.spinlock=false;}
 window.onkeydown = function(e) {keys[e.keyCode]=true; console.log('key down ' + e.keyCode);}
@@ -38,6 +38,11 @@ init();
 animate();
 
 function init() {
+
+	var blockdata = new Array(width);
+	for (var i = 0; i < width; i++) {
+		blockdata[i] = new Array(height);
+	}
 
 	//player.init
 	player.blocksize=window.innerWidth / width;
@@ -48,7 +53,7 @@ function init() {
     camera.position.z = 1000;
     //Offset from 00 being center
     camera.position.x = width/2 * player.blocksize ;
-    camera.position.y = height/2 * player.blocksize ;
+    camera.position.y = height/2 * player.blocksize + player.blocksize*0.75;
     // camera.position.z = 1000;
 
     var scale=0.95;
@@ -132,15 +137,30 @@ function init() {
 
 function randomColours(){	
 	for (var i = 0; i < player.group.children.length; i++) {
-		if(Math.random()*2>=1.0)
+		if(Math.random()*2>=1.0){
 			player.group.children[i].material=material1;
-		else
+			player.group.children[i].color=0;
+		}
+		else{
 			player.group.children[i].material=material2;
+			player.group.children[i].color=1;
+		}
 	}
 }
 function resetBlock(){
 	debugtext.innerHTML =  debugtext.innerHTML + "HIT!!!";
-	inactiveBlocks.add(player.group.clone());
+	inactiveBlocks.add(player.group.clone()); //Adds to mesh
+
+	//Update block data
+	for (var i = 0; i < player.group.children.length; i++) {
+		var block = player.group.children[i];
+		var x = Math.floor(block.position.x/player.blocksize + player.group.position.x/player.blocksize);
+		var y =  Math.floor(block.position.y/player.blocksize + player.group.position.y/player.blocksize);
+		console.log('x:' +x + ' y: ' + y);
+	}
+
+	// blockdata[player.group.position.x/player.blocksize][player.group.position.y/player.blocksize]=1;
+
 	player.group.position.y=player.blocksize*height;
 	player.group.position.x=player.blocksize*width/2;  
 
@@ -243,7 +263,7 @@ function updateGame(){
 				resetBlock();
 			}
 		}
-		if(player.group.position.y/player.blocksize<=0){ //bottom
+		if(player.group.position.y/player.blocksize<=1){ //bottom
 			resetBlock();
 		}
 	}
