@@ -168,13 +168,12 @@ function handleInput(){
 		if (keys[37] && player.group.position.x/player.blocksize >0){	//Left arrow
 			console.log(" Left player.x = " +player.x);
 			
-			//Hit detection
+			//Hit detection left
 			var hit = false;
 			var mess = inactiveBlocks.children;
 			for (var i = 0; i < mess.length; i++) {
-				var xdif=mess[i].position.x - player.group.position.x;
-				var ydif=mess[i].position.y - player.group.position.y;
-				console.log( "xdif " + xdif + " and ydif =   " + ydif)
+				var xdif=mess[i].position.x - player.group.position.x +1;
+				var ydif=mess[i].position.y - player.group.position.y;				
 				if(xdif<player.blocksize*2 && xdif>-player.blocksize*2 && ydif<player.blocksize*2.1 && ydif>-player.blocksize*2.1 ){
 					hit=true;
 				}
@@ -187,8 +186,21 @@ function handleInput(){
 		}
 		if (keys[39] && player.group.position.x/player.blocksize <16){	//Right arrow
 			console.log("Right player.x = " +player.x);
-			player.group.position.x+=player.blocksize;
-			player.lockcount=5;
+			//Hit detection
+			var hit = false;
+			var mess = inactiveBlocks.children;
+			for (var i = 0; i < mess.length; i++) {
+				var xdif=mess[i].position.x - player.group.position.x -1;
+				var ydif=mess[i].position.y - player.group.position.y;				
+				if(xdif<player.blocksize*2 && xdif>-player.blocksize*2 && ydif<player.blocksize*2.1 && ydif>-player.blocksize*2.1 ){
+					hit=true;
+				}
+			}
+			if(!hit){
+				player.group.position.x+=player.blocksize;
+				player.lockcount=5;
+			}
+
 		}
 	}
 	if (player.lockcount > 0)
