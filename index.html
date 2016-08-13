@@ -29,7 +29,7 @@ var debugtext;
 var dropspeed=15;
 var dropcounter=0;
 
-var blockdata=[];
+var blockdata;
 var keys = []; //Key Binding
 window.onkeyup = function(e) {keys[e.keyCode]=false; player.movelock=false; player.spinlock=false;}
 window.onkeydown = function(e) {keys[e.keyCode]=true; console.log('key down ' + e.keyCode);}
@@ -39,10 +39,15 @@ animate();
 
 function init() {
 
-	var blockdata = new Array(width);
+	blockdata = new Array(width);
 	for (var i = 0; i < width; i++) {
 		blockdata[i] = new Array(height);
 	}
+
+// 	var x = new Array(10);
+// for (var i = 0; i < 10; i++) {
+//   x[i] = new Array(20);
+// }
 
 	//player.init
 	player.blocksize=window.innerWidth / width;
@@ -149,7 +154,7 @@ function randomColours(){
 }
 function resetBlock(){
 	debugtext.innerHTML =  debugtext.innerHTML + "HIT!!!";
-	inactiveBlocks.add(player.group.clone()); //Adds to mesh
+	// inactiveBlocks.add(player.group.clone()); //Adds to mesh
 
 	//Update block data
 	for (var i = 0; i < player.group.children.length; i++) {
@@ -157,10 +162,15 @@ function resetBlock(){
 		var x = Math.floor(block.position.x/player.blocksize + player.group.position.x/player.blocksize);
 		var y =  Math.floor(block.position.y/player.blocksize + player.group.position.y/player.blocksize);
 		console.log('x:' +x + ' y: ' + y);
+		if(blockdata[x])
+			blockdata[x]=[];
+		blockdata[x][y]=1;
 	}
+	//Apply Gravity
 
 	// blockdata[player.group.position.x/player.blocksize][player.group.position.y/player.blocksize]=1;
 
+	//Reset player back up top
 	player.group.position.y=player.blocksize*height;
 	player.group.position.x=player.blocksize*width/2;  
 
@@ -177,6 +187,26 @@ function resetBlock(){
 	}
 
 	randomColours()
+
+	//Rebuild Mesh from data
+    // scene.remove( selectedObject );
+	// inactiveBlocks = new THREE.Object3D();
+	for (var x = 0; x <  width; x++) {
+		for (var y = 0; y <  height; y++) {
+			if (blockdata[x][y]){
+				//add block on mesh
+				var mesh = new THREE.Mesh( geometry, material1 );
+			    // mesh.position.x-=player.blocksize/2;
+			    // mesh.position.y+=player.blocksize/2;
+			    mesh.position.x=player.blocksize*x;
+			    mesh.position.y=player.blocksize*y + player.blocksize;
+			    // player.group.add(mesh);
+				inactiveBlocks.add(mesh);
+			}
+		}
+		
+	}
+
 }
 
 function handleInput(){	
