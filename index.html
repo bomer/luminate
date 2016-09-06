@@ -2,7 +2,7 @@
 <!DOCTYPE html>
 <html lang="en">
 	<head>
-		<title>three.js webgl - geometry - cube</title>
+		<title>Luminate</title>
 		<meta charset="utf-8">
 		<meta name="viewport" content="width=device-width, user-scalable=no, minimum-scale=1.0, maximum-scale=1.0">
 		<style>
@@ -19,6 +19,18 @@
 
 		<script>
 
+/*
+Lumines clone, by James O'Toole
+TODO:
+-Show to remove
+-add line
+-remove
+-score
+-Fix Crash on fill screen.
+-fix rotation not joining block in new order
+-
+*/
+
 var scene, camera, renderer;
 var geometry, material1,material2, mesh;
 var inactiveBlocks;// = []; //16 wide by 10 height as on PSP
@@ -30,6 +42,7 @@ var dropspeed=15;
 var dropcounter=0;
 
 var blockdata;
+var glowdata=[];
 var keys = []; //Key Binding
 window.onkeyup = function(e) {keys[e.keyCode]=false; player.movelock=false; player.spinlock=false;}
 window.onkeydown = function(e) {keys[e.keyCode]=true; console.log('key down ' + e.keyCode);}
@@ -43,11 +56,7 @@ function init() {
 	for (var i = 0; i < width; i++) {
 		blockdata[i] = new Array(height);
 	}
-
-// 	var x = new Array(10);
-// for (var i = 0; i < 10; i++) {
-//   x[i] = new Array(20);
-// }
+	glowdata=blockdata;
 
 	//player.init
 	player.blocksize=window.innerWidth / width;
@@ -63,13 +72,14 @@ function init() {
 
     var scale=0.95;
     geometry = new THREE.BoxGeometry( player.blocksize*scale, player.blocksize*scale,player.blocksize*scale);
-    material1 = new THREE.MeshPhongMaterial( { color: 0xff0000, wireframe: false } );
-    material2 = new THREE.MeshPhongMaterial( { color: 0xffffff, wireframe: false } );
+    material1 = new THREE.MeshPhongMaterial( { color: 0xff0000, wireframe: false, transparent: false } );
+    material2 = new THREE.MeshPhongMaterial( { color: 0xffffff, wireframe: false, transparent: false } );
+    material3 = new THREE.MeshPhongMaterial( { color: 0xffff00, wireframe: false, transparent: false } );
+    material4 = new THREE.MeshPhongMaterial( { color: 0xff00ff, wireframe: false, transparent: false } );
 
-    
-    // player.y=2;
     //Empty blocks
     inactiveBlocks = new THREE.Object3D();
+    glowingLights  = new THREE.Object3D();
 
     //setup player block 
     player.group = new THREE.Object3D();//create an empty container 
@@ -101,9 +111,10 @@ function init() {
 
     scene.add( player.group );//when done, add the group to the scene
     scene.add(inactiveBlocks);
+    scene.add(glowingLights);
     randomColours();
 
-    renderer = new THREE.WebGLRenderer({ antialias: false });
+    renderer = new THREE.WebGLRenderer({ antialias: true });
     renderer.setSize( window.innerWidth, window.innerHeight );
 
     //lights
@@ -162,11 +173,35 @@ function resetBlock(){
 		var x = Math.floor(block.position.x/player.blocksize + player.group.position.x/player.blocksize);
 		var y =  Math.floor(block.position.y/player.blocksize + player.group.position.y/player.blocksize);
 		console.log('x:' +x + ' y: ' + y);
-		if(blockdata[x])
-			blockdata[x]=[];
-		blockdata[x][y]=1;
+		// if(!blockdata[x])
+		// 	blockdata[x]=[];
+		if(block.material==material1 || block.material==material3)
+			blockdata[x][y]=1;
+		else
+			blockdata[x][y]=2;
 	}
-	//Apply Gravity
+	//Apply Gravity,
+	//Go through each row, and "suck" down
+	
+	for (var x = 0; x < width; x++) {
+		for (var y = 0; y < height; y++) {
+			if(!blockdata[x][y]){ //only if there isn't a block there already
+				// var uphit=false;
+				for (var i = y+1; i < height ; i++) { // scan upwards
+					if(blockdata[x][i]){ // if hit
+						blockdata[x][y]=blockdata[x][i]; // swap with hit block
+						blockdata[x][i]=0;
+						break;
+					}
+				}
+			}
+
+		}
+	}
+	
+		// if blockdata[i]height]
+	
+
 
 	// blockdata[player.group.position.x/player.blocksize][player.group.position.y/player.blocksize]=1;
 
@@ -183,22 +218,29 @@ function resetBlock(){
 		if(xdif<player.blocksize*2 && xdif>-player.blocksize*2 && ydif<player.blocksize*2.1 && ydif>-player.blocksize*2.1 ){//hit
 			//GAME OVER - TODO
 			// init();
+			// alert('Game over');
 		}
 	}
 
-	randomColours()
+
+	//Clean up old mesh
+	for (var i = 0; i < inactiveBlocks.children.length; i++) {
+		inactiveBlocks.remove(inactiveBlocks.children[i]);
+	}
+	console.log('len ' + inactiveBlocks.children.length);
 
 	//Rebuild Mesh from data
-    // scene.remove( selectedObject );
-	// inactiveBlocks = new THREE.Object3D();
 	for (var x = 0; x <  width; x++) {
 		for (var y = 0; y <  height; y++) {
 			if (blockdata[x][y]){
 				//add block on mesh
-				var mesh = new THREE.Mesh( geometry, material1 );
+				if (blockdata[x][y]==2)
+					var mesh = new THREE.Mesh( geometry, material2 );
+				else
+					var mesh = new THREE.Mesh( geometry, material1 );
 			    // mesh.position.x-=player.blocksize/2;
 			    // mesh.position.y+=player.blocksize/2;
-			    mesh.position.x=player.blocksize*x;
+			    mesh.position.x=player.blocksize*x + player.blocksize/2;
 			    mesh.position.y=player.blocksize*y + player.blocksize;
 			    // player.group.add(mesh);
 				inactiveBlocks.add(mesh);
@@ -206,6 +248,8 @@ function resetBlock(){
 		}
 		
 	}
+		randomColours();
+
 
 }
 
@@ -215,7 +259,7 @@ function handleInput(){
 			player.forcedrop=true;
 			player.lockcount=5;
 		}
-		if (keys[37] && player.group.position.x/player.blocksize >0){	//Left arrow
+		if (keys[37] && player.group.position.x/player.blocksize >1){	//Left arrow
 			console.log(" Left player.x = " +player.x);
 			
 			//Hit detection left
@@ -224,7 +268,7 @@ function handleInput(){
 			for (var i = 0; i < mess.length; i++) {
 				var xdif=mess[i].position.x - player.group.position.x +1;
 				var ydif=mess[i].position.y - player.group.position.y;				
-				if(xdif<player.blocksize*2 && xdif>-player.blocksize*2 && ydif<player.blocksize*2.1 && ydif>-player.blocksize*2.1 ){
+				if(xdif<player.blocksize*1 && xdif>-player.blocksize*2 && ydif<player.blocksize*2 && ydif>-player.blocksize*2 ){
 					hit=true;
 				}
 			}
@@ -234,7 +278,7 @@ function handleInput(){
 			}
 
 		}
-		if (keys[39] && player.group.position.x/player.blocksize <16){	//Right arrow
+		if (keys[39] && player.group.position.x/player.blocksize <15){	//Right arrow
 			console.log("Right player.x = " +player.x);
 			//Hit detection
 			var hit = false;
@@ -242,7 +286,7 @@ function handleInput(){
 			for (var i = 0; i < mess.length; i++) {
 				var xdif=mess[i].position.x - player.group.position.x -1;
 				var ydif=mess[i].position.y - player.group.position.y;				
-				if(xdif<player.blocksize*2 && xdif>-player.blocksize*2 && ydif<player.blocksize*2.1 && ydif>-player.blocksize*2.1 ){
+				if(xdif<player.blocksize*2 && xdif>-player.blocksize*1 && ydif<player.blocksize*2.1 && ydif>-player.blocksize*2.1 ){
 					hit=true;
 				}
 			}
@@ -258,11 +302,11 @@ function handleInput(){
 
 	if (player.spincount == 0){
 		if(keys[65] || keys[81] || keys[90]){//Q A Z			
-			player.group.rotation.z+=Math.PI / 2;;		
+			player.group.rotation.z+=Math.PI / 2;		
 			player.spincount=15;			
 		}
 		if(keys[83] || keys[87] ||keys[88]){// W S X
-			player.group.rotation.z-=Math.PI / 2;;		
+			player.group.rotation.z-=Math.PI / 2;		
 			player.spincount=15;			
 		}
 	}
@@ -271,6 +315,42 @@ function handleInput(){
 	debugtext.innerHTML = "x: " +  player.group.position.x/player.blocksize + "  y:" + player.group.position.y/player.blocksize;
 
 }
+
+function updateGlowingBlocks(){
+
+	//cleanup lights
+	// console.log('count of lights ' + glowingLights.children.length);
+	// for (var i = 0; i < glowingLights.children.length; i++) {
+	// 	glowingLights.remove(glowingLights.children[i]);
+	// }
+	// console.log('count of lights ' + glowingLights.children.length);
+	for (var i = 0; i < inactiveBlocks.children.length; i++) {
+		var current = inactiveBlocks.children[i];		
+		var x = Math.floor(current.position.x/player.blocksize);
+		var y = (current.position.y/player.blocksize) - 1;		
+
+		// var light = new THREE.PointLight( 0xffffff, 1, 0 );
+	
+		// var lil=400;
+		// var big=800;
+		
+
+		//new way, broken, lights
+		if(glowdata[x][y]){
+		// 	console.log('GLOWING!');
+		// 	light.position.set( x * player.blockwidth, y * player.blockwidth, -100 );
+		// 	glowingLights.add(light);
+		// }
+		//Old way, material
+			if(inactiveBlocks.children[i].material==material1 || inactiveBlocks.children[i].material==material3)
+				inactiveBlocks.children[i].material=material3;
+			if(inactiveBlocks.children[i].material==material2 || inactiveBlocks.children[i].material==material4)
+				inactiveBlocks.children[i].material=material4;
+		 	// inactiveBlocks.children[i].material.opacity=0.3;
+		}
+	}
+}
+
 
 function updateGame(){
 	// mesh.rotation.x += 0.01;
@@ -289,13 +369,42 @@ function updateGame(){
 		for (var i = 0; i < mess.length; i++) {
 			var xdif=mess[i].position.x - player.group.position.x;
 			var ydif=mess[i].position.y - player.group.position.y;
-			if(xdif<player.blocksize*2 && xdif>-player.blocksize*2 && ydif<player.blocksize*2.1 && ydif>-player.blocksize*2.1 ){
+			if(xdif<player.blocksize*1 && xdif>-player.blocksize*1
+			 && ydif<player.blocksize*2 && ydif>-player.blocksize*2 ){
 				resetBlock();
 			}
 		}
 		if(player.group.position.y/player.blocksize<=1){ //bottom
 			resetBlock();
 		}
+
+		//Block 2x2 GLOW detection
+		glowdata=new Array(width);
+		for (var i = 0; i < width; i++) {
+			glowdata[i] = new Array(height);
+		}
+		for (var x = 0; x < width; x++) {
+			for (var y = 0; y < height; y++) {
+				var starting = blockdata[x][y];
+				if (starting && x < width-1 && y<height-1){
+					if(starting == blockdata[x+1][y]  && 
+					   starting == blockdata[x][y+1] && 
+					   starting == blockdata[x+1][y+1]){ // adjaect hits
+					   	// console.log('GLOW!');
+					   glowdata[x]  [y]=1;
+					   glowdata[x+1][y]=1;
+					   glowdata[x]  [y+1]=1;
+					   glowdata[x+1][y+1]=1;
+						
+
+					}
+
+				}
+
+				
+			}
+		}
+		updateGlowingBlocks();
 	}
 
 }
