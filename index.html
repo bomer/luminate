@@ -42,6 +42,7 @@ var dropspeed=25;
 var dropcounter=0;
 var glowCount=0;
 var removeCounter=0;
+var removeBlock;
 
 var blockdata;
 var glowdata=[];
@@ -76,8 +77,8 @@ function init() {
     geometry = new THREE.BoxGeometry( player.blocksize*scale, player.blocksize*scale,player.blocksize*scale);
     material1 = new THREE.MeshPhongMaterial( { color: 0xff0000, wireframe: false, transparent: false } );
     material2 = new THREE.MeshPhongMaterial( { color: 0xffffff, wireframe: false, transparent: false } );
-    material3 = new THREE.MeshPhongMaterial( { color: 0xffff00, wireframe: false, transparent: false } );
-    material4 = new THREE.MeshPhongMaterial( { color: 0xff00ff, wireframe: false, transparent: false } );
+    material3 = new THREE.MeshPhongMaterial( { color: 0xffaa00, wireframe: false, transparent: false } );
+    material4 = new THREE.MeshPhongMaterial( { color: 0xffaaaa, wireframe: false, transparent: false } );
 
     //Empty blocks
     inactiveBlocks = new THREE.Object3D();
@@ -110,6 +111,13 @@ function init() {
     mesh.position.y+=player.blocksize/2;
     mesh.position.y-=player.blocksize;
     player.group.add(mesh);
+
+    //Block for high score
+    var boxGeometry = new THREE.BoxGeometry(1,player.blocksize*scale /5 ,player.blocksize*scale/5);
+    removeBlock = new THREE.Mesh( boxGeometry, material1 );
+    removeBlock.position.x+=player.blocksize;
+    removeBlock.position.y+=player.blocksize/2;
+    scene.add(removeBlock);
 
     scene.add( player.group );//when done, add the group to the scene
     scene.add(inactiveBlocks);
@@ -307,22 +315,29 @@ function handleInput(){
 		player.lockcount--;
 
 	if (player.spincount == 0){
+
 		if(keys[65] || keys[81] || keys[90]){//Q A Z - LEFT			
-			// player.group.rotation.z+=Math.PI / 2;		
-			var copy = player.group.children;
-			var first=copy[0];			
-			for (var i = 0; i < player.group.children.length -1; i++) {
-				player.group.remove(player.group.children[i]);
-				// player.group.remove(player.group.children[i]) = player.group.children[i+1];
-			}
-			for (var i = 0; i < copy.length ; i++) {
-				player.group.add(copy[i]);
-			}			
-			player.group.add(copy[0]);
+			// player.group.rotation.z+=Math.PI / 2; OLD METHOD, doesnt work with grid placement :(			
+			// 0 1   >  1 2   
+			// 3 2      0 3
+			var og = player.group.children[0].material;
+			player.group.children[0].material=player.group.children[1].material;
+			player.group.children[1].material=player.group.children[2].material;
+			player.group.children[2].material=player.group.children[3].material;
+			player.group.children[3].material=og;
 			player.spincount=15;			
 		}
+		
+		// 0 1   >  3 0   
+		// 3 2      2 1
 		if(keys[83] || keys[87] ||keys[88]){// W S X - RIGHT
-			player.group.rotation.z-=Math.PI / 2;		
+			// player.group.rotation.z-=Math.PI / 2;		
+			var og = player.group.children[3].material;
+			// player.group.children[0].material=player.group.children[3].material;
+			player.group.children[3].material=player.group.children[2].material;
+			player.group.children[2].material=player.group.children[1].material;
+			player.group.children[1].material=player.group.children[0].material;
+			player.group.children[0].material=og;
 			player.spincount=15;			
 		}
 	}
@@ -442,7 +457,7 @@ function updateGame(){
 		var countDelta =  countArrayContent(glowdata) - glowCount;
 		if(countDelta > 0){
 			//Increase, reset timer
-			removeCounter+=33*countDelta;
+			removeCounter+=29*countDelta;
 		}
 		updateGlowingBlocks();
 	}
@@ -459,9 +474,11 @@ function updateGame(){
 				}
 			}
 		}
+		
 		applyGravity();
 		rebuildMesh();
 	}
+	removeBlock.scale.x = removeCounter;
 	debugText();
 
 }
