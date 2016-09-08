@@ -14,21 +14,17 @@
 		</style>
 	</head>
 	<body>
-
-		<script src="three.min.js"></script>
-
-		<script>
+	<script src="three.min.js"></script>
+	<script>
 
 /*
 Lumines clone, by James O'Toole
 TODO:
--Show to remove
--add line
--remove
--score
--Fix Crash on fill screen.
--fix rotation not joining block in new order
--
+-BUG
+-Mobile Controls
+-GAME OVER
+-Menu/Score
+-Pause/sync to local storage
 */
 
 var scene, camera, renderer;
@@ -67,11 +63,10 @@ function init() {
 	//Camera
     scene = new THREE.Scene();
     camera = new THREE.PerspectiveCamera( 60, window.innerWidth / window.innerHeight, 1, 10000 );
-    camera.position.z = 1000;
+    camera.position.z = 1010;
     //Offset from 00 being center
     camera.position.x = width/2 * player.blocksize ;
     camera.position.y = height/2 * player.blocksize + player.blocksize*0.75;
-    // camera.position.z = 1000;
 
     var scale=0.95;
     geometry = new THREE.BoxGeometry( player.blocksize*scale, player.blocksize*scale,player.blocksize*scale);
@@ -148,11 +143,9 @@ function init() {
 
 	debugtext = document.createElement('div');
 	debugtext.style.position = 'absolute';
-	//debugtext.style.zIndex = 1;    // if you still don't see the label, try uncommenting this
 	debugtext.style.width = 32;
 	debugtext.style.height = 32;
 	debugtext.style.color="white";
-	// debugtext.style.backgroundColor = "blue";
 	debugtext.innerHTML = "hi there!";
 	debugtext.style.top = 32 + 'px';
 	debugtext.style.left = 32 + 'px';
@@ -175,17 +168,11 @@ function randomColours(){
 }
 function resetBlock(){
 	debugtext.innerHTML =  debugtext.innerHTML + "HIT!!!";
-	// inactiveBlocks.add(player.group.clone()); //Adds to mesh
-
-	//Update block data
-	//Put player int blockdata
+	//Update block data - Put player int blockdata
 	for (var i = 0; i < player.group.children.length; i++) {
 		var block = player.group.children[i];
 		var x = Math.floor(block.position.x/player.blocksize + player.group.position.x/player.blocksize);
 		var y =  Math.floor(block.position.y/player.blocksize + player.group.position.y/player.blocksize);
-		// console.log('x:' +x + ' y: ' + y);
-		// if(!blockdata[x])
-		// 	blockdata[x]=[];
 		if(block.material==material1 || block.material==material3)
 			blockdata[x][y]=1;
 		else
@@ -210,15 +197,8 @@ function resetBlock(){
 			// alert('Game over');
 		}
 	}
-
-
-	
-	// console.log('len ' + inactiveBlocks.children.length);
-
 	rebuildMesh();
 	randomColours();
-
-
 }
 
 function applyGravity(){
@@ -236,7 +216,6 @@ function applyGravity(){
 					}
 				}
 			}
-
 		}
 	}
 }
@@ -254,12 +233,9 @@ function rebuildMesh(){
 				if (blockdata[x][y]==2)
 					var mesh = new THREE.Mesh( geometry, material2 );
 				else
-					var mesh = new THREE.Mesh( geometry, material1 );
-			    // mesh.position.x-=player.blocksize/2;
-			    // mesh.position.y+=player.blocksize/2;
+					var mesh = new THREE.Mesh( geometry, material1 );			    
 			    mesh.position.x=player.blocksize*x + player.blocksize/2;
 			    mesh.position.y=player.blocksize*y + player.blocksize;
-			    // player.group.add(mesh);
 				inactiveBlocks.add(mesh);
 			}
 		}
@@ -275,7 +251,6 @@ function handleInput(){
 		}
 		if (keys[37] && player.group.position.x/player.blocksize >1){	//Left arrow
 			// console.log(" Left player.x = " +player.x);
-			
 			//Hit detection left
 			var hit = false;
 			var mess = inactiveBlocks.children;
@@ -293,7 +268,6 @@ function handleInput(){
 
 		}
 		if (keys[39] && player.group.position.x/player.blocksize <15){	//Right arrow
-			// console.log("Right player.x = " +player.x);
 			//Hit detection
 			var hit = false;
 			var mess = inactiveBlocks.children;
@@ -308,12 +282,10 @@ function handleInput(){
 				player.group.position.x+=player.blocksize;
 				player.lockcount=5;
 			}
-
 		}
 	}
 	if (player.lockcount > 0)
 		player.lockcount--;
-
 	if (player.spincount == 0){
 
 		if(keys[65] || keys[81] || keys[90]){//Q A Z - LEFT			
@@ -327,7 +299,6 @@ function handleInput(){
 			player.group.children[3].material=og;
 			player.spincount=15;			
 		}
-		
 		// 0 1   >  3 0   
 		// 3 2      2 1
 		if(keys[83] || keys[87] ||keys[88]){// W S X - RIGHT
@@ -344,7 +315,6 @@ function handleInput(){
 	if (player.spincount > 0)
 		player.spincount--;
 	
-
 }
 function debugText(){
 	debugtext.innerHTML = "x: " +  player.group.position.x/player.blocksize + "  y:" + player.group.position.y/player.blocksize +
@@ -352,37 +322,15 @@ function debugText(){
 }
 
 function updateGlowingBlocks(){
-
-	//cleanup lights
-	// console.log('count of lights ' + glowingLights.children.length);
-	// for (var i = 0; i < glowingLights.children.length; i++) {
-	// 	glowingLights.remove(glowingLights.children[i]);
-	// }
-	// console.log('count of lights ' + glowingLights.children.length);
-
 	for (var i = 0; i < inactiveBlocks.children.length; i++) {
 		var current = inactiveBlocks.children[i];		
 		var x = Math.floor(current.position.x/player.blocksize);
 		var y = (current.position.y/player.blocksize) - 1;		
-
-		// var light = new THREE.PointLight( 0xffffff, 1, 0 );
-	
-		// var lil=400;
-		// var big=800;
-		
-
-		//new way, broken, lights
-		if(glowdata[x][y]){
-		// 	console.log('GLOWING!');
-		// 	light.position.set( x * player.blockwidth, y * player.blockwidth, -100 );
-		// 	glowingLights.add(light);
-		// }
-		//Old way, material
+		if(glowdata[x][y]){		
 			if(inactiveBlocks.children[i].material==material1 || inactiveBlocks.children[i].material==material3)
 				inactiveBlocks.children[i].material=material3;
 			if(inactiveBlocks.children[i].material==material2 || inactiveBlocks.children[i].material==material4)
 				inactiveBlocks.children[i].material=material4;
-		 	// inactiveBlocks.children[i].material.opacity=0.3;
 		}
 	}
 }
@@ -398,7 +346,6 @@ function countArrayContent(arr){
 		}
 	}
 	return count;
-
 }
 
 function updateGame(){
@@ -445,13 +392,8 @@ function updateGame(){
 					   glowdata[x+1][y]=1;
 					   glowdata[x]  [y+1]=1;
 					   glowdata[x+1][y+1]=1;
-						
-
 					}
-
 				}
-
-				
 			}
 		}
 		var countDelta =  countArrayContent(glowdata) - glowCount;
@@ -469,8 +411,6 @@ function updateGame(){
 			for (var y = 0; y <  height; y++) {
 				if (blockdata[x][y] && glowdata[x][y]){
 					blockdata[x][y]=0;
-					// glowdata[x][y]=0;
-
 				}
 			}
 		}
@@ -480,21 +420,15 @@ function updateGame(){
 	}
 	removeBlock.scale.x = removeCounter;
 	debugText();
-
 }
 
+//GameLoops
 function animate() {
-
     requestAnimationFrame( animate );
-
     updateGame()
-    
     renderer.render( scene, camera );
 
 }
-
-
-
 		</script>
 
 	</body>
