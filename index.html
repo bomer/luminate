@@ -38,7 +38,7 @@ var player = {};
 var width=16;
 var height=10;
 var debugtext;
-var dropspeed=15;
+var dropspeed=25;
 var dropcounter=0;
 var glowCount=0;
 var removeCounter=0;
@@ -170,6 +170,7 @@ function resetBlock(){
 	// inactiveBlocks.add(player.group.clone()); //Adds to mesh
 
 	//Update block data
+	//Put player int blockdata
 	for (var i = 0; i < player.group.children.length; i++) {
 		var block = player.group.children[i];
 		var x = Math.floor(block.position.x/player.blocksize + player.group.position.x/player.blocksize);
@@ -182,31 +183,9 @@ function resetBlock(){
 		else
 			blockdata[x][y]=2;
 	}
-	//Apply Gravity,
-	//Go through each row, and "suck" down
+	//Move pieces down
+	applyGravity();
 	
-	for (var x = 0; x < width; x++) {
-		for (var y = 0; y < height; y++) {
-			if(!blockdata[x][y]){ //only if there isn't a block there already
-				// var uphit=false;
-				for (var i = y+1; i < height ; i++) { // scan upwards
-					if(blockdata[x][i]){ // if hit
-						blockdata[x][y]=blockdata[x][i]; // swap with hit block
-						blockdata[x][i]=0;
-						break;
-					}
-				}
-			}
-
-		}
-	}
-	
-		// if blockdata[i]height]
-	
-
-
-	// blockdata[player.group.position.x/player.blocksize][player.group.position.y/player.blocksize]=1;
-
 	//Reset player back up top
 	player.group.position.y=player.blocksize*height;
 	player.group.position.x=player.blocksize*width/2;  
@@ -225,12 +204,40 @@ function resetBlock(){
 	}
 
 
+	
+	// console.log('len ' + inactiveBlocks.children.length);
+
+	rebuildMesh();
+	randomColours();
+
+
+}
+
+function applyGravity(){
+	//Apply Gravity,
+	//Go through each row, and "suck" down
+	for (var x = 0; x < width; x++) {
+		for (var y = 0; y < height; y++) {
+			if(!blockdata[x][y]){ //only if there isn't a block there already
+				// var uphit=false;
+				for (var i = y+1; i < height ; i++) { // scan upwards
+					if(blockdata[x][i]){ // if hit
+						blockdata[x][y]=blockdata[x][i]; // swap with hit block
+						blockdata[x][i]=0;
+						break;
+					}
+				}
+			}
+
+		}
+	}
+}
+
+function rebuildMesh(){
 	//Clean up old mesh
 	for (var i = 0; i < inactiveBlocks.children.length; i++) {
 		inactiveBlocks.remove(inactiveBlocks.children[i]);
 	}
-	// console.log('len ' + inactiveBlocks.children.length);
-
 	//Rebuild Mesh from data
 	for (var x = 0; x <  width; x++) {
 		for (var y = 0; y <  height; y++) {
@@ -250,9 +257,6 @@ function resetBlock(){
 		}
 		
 	}
-		randomColours();
-
-
 }
 
 function handleInput(){	
@@ -303,11 +307,21 @@ function handleInput(){
 		player.lockcount--;
 
 	if (player.spincount == 0){
-		if(keys[65] || keys[81] || keys[90]){//Q A Z			
-			player.group.rotation.z+=Math.PI / 2;		
+		if(keys[65] || keys[81] || keys[90]){//Q A Z - LEFT			
+			// player.group.rotation.z+=Math.PI / 2;		
+			var copy = player.group.children;
+			var first=copy[0];			
+			for (var i = 0; i < player.group.children.length -1; i++) {
+				player.group.remove(player.group.children[i]);
+				// player.group.remove(player.group.children[i]) = player.group.children[i+1];
+			}
+			for (var i = 0; i < copy.length ; i++) {
+				player.group.add(copy[i]);
+			}			
+			player.group.add(copy[0]);
 			player.spincount=15;			
 		}
-		if(keys[83] || keys[87] ||keys[88]){// W S X
+		if(keys[83] || keys[87] ||keys[88]){// W S X - RIGHT
 			player.group.rotation.z-=Math.PI / 2;		
 			player.spincount=15;			
 		}
@@ -428,14 +442,25 @@ function updateGame(){
 		var countDelta =  countArrayContent(glowdata) - glowCount;
 		if(countDelta > 0){
 			//Increase, reset timer
-			removeCounter+=50*countDelta;
+			removeCounter+=33*countDelta;
 		}
 		updateGlowingBlocks();
 	}
 	if(removeCounter>0)
 		removeCounter--;
 	if(removeCounter==0 && glowCount>0){
-		//CLEAR GLOWING BLOXES
+		//CLEAR GLOWING BLOXES		
+		for (var x = 0; x <  width; x++) {
+			for (var y = 0; y <  height; y++) {
+				if (blockdata[x][y] && glowdata[x][y]){
+					blockdata[x][y]=0;
+					// glowdata[x][y]=0;
+
+				}
+			}
+		}
+		applyGravity();
+		rebuildMesh();
 	}
 	debugText();
 
