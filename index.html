@@ -40,6 +40,7 @@ var glowCount=0;
 var removeCounter=0;
 var removeBlock;
 
+var score=0;
 var blockdata;
 var glowdata=[];
 var keys = []; //Key Binding
@@ -111,6 +112,7 @@ function init() {
     var boxGeometry = new THREE.BoxGeometry(1,player.blocksize*scale /5 ,player.blocksize*scale/5);
     removeBlock = new THREE.Mesh( boxGeometry, material1 );
     removeBlock.position.x+=player.blocksize;
+    // removeBlock.position.z-=player.blocksize*1;
     removeBlock.position.y+=player.blocksize/2;
     scene.add(removeBlock);
 
@@ -409,12 +411,11 @@ function updateGame(){
 		//CLEAR GLOWING BLOXES		
 		for (var x = 0; x <  width; x++) {
 			for (var y = 0; y <  height; y++) {
-				if (blockdata[x][y] && glowdata[x][y]){
+				if (glowdata[x][y]==1){
 					blockdata[x][y]=0;
 				}
 			}
-		}
-		
+		}		
 		applyGravity();
 		rebuildMesh();
 	}
