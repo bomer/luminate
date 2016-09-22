@@ -38,6 +38,7 @@ var dropspeed=25;
 var dropcounter=0;
 var glowCount=0;
 var removeCounter=0;
+var safetyCounter=0;
 var removeBlock;
 
 var score=0;
@@ -64,7 +65,7 @@ function init() {
 	//Camera
     scene = new THREE.Scene();
     camera = new THREE.PerspectiveCamera( 60, window.innerWidth / window.innerHeight, 1, 10000 );
-    camera.position.z = 1010;
+    camera.position.z = window.innerHeight*1.15;
     //Offset from 00 being center
     camera.position.x = width/2 * player.blocksize ;
     camera.position.y = height/2 * player.blocksize + player.blocksize*0.75;
@@ -82,7 +83,7 @@ function init() {
 
     //setup player block 
     player.group = new THREE.Object3D();//create an empty container 
-    player.group.position.y=player.blocksize*height; 
+    player.group.position.y=player.blocksize*height + player.blocksize/2; 
     player.group.position.x=player.blocksize*width/2;     
     mesh = new THREE.Mesh( geometry, material1 );
     mesh.position.x-=player.blocksize/2;
@@ -184,7 +185,7 @@ function resetBlock(){
 	applyGravity();
 	
 	//Reset player back up top
-	player.group.position.y=player.blocksize*height;
+	player.group.position.y=player.blocksize*height + player.blocksize/2;
 	player.group.position.x=player.blocksize*width/2;  
 
 	//Check if player spawn on an existing block. GAME OVER Scenaripo
@@ -351,10 +352,17 @@ function countArrayContent(arr){
 }
 
 function updateGame(){
-	// mesh.rotation.x += 0.01;
 	//Handle Input First
-	handleInput()
+	handleInput();
 
+	if (safetyCounter>1)
+		safetyCounter--;
+ 	else if(safetyCounter==1){
+		resetBlock();
+		safetyCounter=0;					
+ 	}
+ 	else{
+ 		
 	dropcounter++;
 	if(dropcounter>dropspeed || player.forcedrop){
 		if(player.forcedrop)
@@ -369,7 +377,7 @@ function updateGame(){
 			var ydif=mess[i].position.y - player.group.position.y;
 			if(xdif<player.blocksize*1 && xdif>-player.blocksize*1
 			 && ydif<player.blocksize*2 && ydif>-player.blocksize*2 ){
-				resetBlock();
+				safetyCounter=30;				
 			}
 		}
 		if(player.group.position.y/player.blocksize<=1){ //bottom
@@ -405,6 +413,7 @@ function updateGame(){
 		}
 		updateGlowingBlocks();
 	}
+	}//end 
 	if(removeCounter>0)
 		removeCounter--;
 	if(removeCounter==0 && glowCount>0){
