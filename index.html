@@ -32,8 +32,8 @@ TODO:
       var geometry, material1, material2, mesh;
       var inactiveBlocks; // = []; //16 wide by 10 height as on PSP
       var player = {};
-      var width = 16;
-      var height = 10;
+      var width = 8;
+      var height = 20;
       var debugtext;
       var dropspeed = 25;
       var dropcounter = 0;
@@ -210,6 +210,7 @@ TODO:
         //Update block data - Put player int blockdata
         for (var i = 0; i < player.group.children.length; i++) {
           var block = player.group.children[i];
+          console.log(block);
           var x = Math.floor(
             block.position.x / player.blocksize +
               player.group.position.x / player.blocksize
@@ -302,7 +303,7 @@ TODO:
             player.forcedrop = true;
             player.lockcount = 5;
           }
-          if (keys[37] && player.group.position.x / player.blocksize > 1) {
+          if (keys[37] && player.group.position.x / player.blocksize > 0) {
             //Left arrow
             // console.log(" Left player.x = " +player.x);
             //Hit detection left
@@ -325,7 +326,7 @@ TODO:
               player.lockcount = 5;
             }
           }
-          if (keys[39] && player.group.position.x / player.blocksize < 15) {
+          if (keys[39] && player.group.position.x / player.blocksize < width) {
             //Right arrow
             //Hit detection
             var hit = false;
@@ -434,6 +435,7 @@ TODO:
         //Handle Input First
         handleInput();
 
+        //Handle Safety Counter, this provides a half second pause between clearing a block.
         if (safetyCounter > 1) safetyCounter--;
         else if (safetyCounter == 1) {
           resetBlock();
@@ -492,7 +494,7 @@ TODO:
             var countDelta = countArrayContent(glowdata) - glowCount;
             if (countDelta > 0) {
               //Increase, reset timer
-              removeCounter += 29 * countDelta;
+              removeCounter += 120 * countDelta;
             }
             updateGlowingBlocks();
           }
