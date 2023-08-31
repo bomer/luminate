@@ -3,10 +3,7 @@
   <head>
     <title>Luminate</title>
     <meta charset="utf-8" />
-    <meta
-      name="viewport"
-      content="width=device-width, user-scalable=no, minimum-scale=1.0, maximum-scale=1.0"
-    />
+    <meta name="viewport" content="width=device-width, user-scalable=no, minimum-scale=1.0, maximum-scale=1.0" />
     <style>
       body {
         margin: 0px;
@@ -32,8 +29,8 @@ TODO:
       var geometry, material1, material2, mesh;
       var inactiveBlocks; // = []; //16 wide by 10 height as on PSP
       var player = {};
-      var width = 8;
-      var height = 20;
+      var width = 10;
+      var height = 18;
       var debugtext;
       var dropspeed = 25;
       var dropcounter = 0;
@@ -71,24 +68,14 @@ TODO:
         (player.lockcount = 0), (player.spincount = 0);
         //Camera
         scene = new THREE.Scene();
-        camera = new THREE.PerspectiveCamera(
-          60,
-          window.innerWidth / window.innerHeight,
-          1,
-          10000
-        );
+        camera = new THREE.PerspectiveCamera(60, window.innerWidth / window.innerHeight, 1, 10000);
         camera.position.z = window.innerHeight * 1.15;
         //Offset from 00 being center
         camera.position.x = (width / 2) * player.blocksize;
-        camera.position.y =
-          (height / 2) * player.blocksize + player.blocksize * 0.75;
+        camera.position.y = (height / 2) * player.blocksize + player.blocksize * 0.75;
 
         var scale = 0.95;
-        geometry = new THREE.BoxGeometry(
-          player.blocksize * scale,
-          player.blocksize * scale,
-          player.blocksize * scale
-        );
+        geometry = new THREE.BoxGeometry(player.blocksize * scale, player.blocksize * scale, player.blocksize * scale);
         material1 = new THREE.MeshPhongMaterial({
           color: 0xff0000,
           wireframe: false,
@@ -116,8 +103,7 @@ TODO:
 
         //setup player block
         player.group = new THREE.Object3D(); //create an empty container
-        player.group.position.y =
-          player.blocksize * height + player.blocksize / 2;
+        player.group.position.y = player.blocksize * height + player.blocksize / 2;
         player.group.position.x = (player.blocksize * width) / 2;
         mesh = new THREE.Mesh(geometry, material1);
         mesh.position.x -= player.blocksize / 2;
@@ -144,11 +130,7 @@ TODO:
         player.group.add(mesh);
 
         //Block for high score
-        var boxGeometry = new THREE.BoxGeometry(
-          1,
-          (player.blocksize * scale) / 5,
-          (player.blocksize * scale) / 5
-        );
+        var boxGeometry = new THREE.BoxGeometry(1, (player.blocksize * scale) / 5, (player.blocksize * scale) / 5);
         removeBlock = new THREE.Mesh(boxGeometry, material1);
         removeBlock.position.x += player.blocksize;
         // removeBlock.position.z-=player.blocksize*1;
@@ -211,24 +193,17 @@ TODO:
         for (var i = 0; i < player.group.children.length; i++) {
           var block = player.group.children[i];
           console.log(block);
-          var x = Math.floor(
-            block.position.x / player.blocksize +
-              player.group.position.x / player.blocksize
-          );
-          var y = Math.floor(
-            block.position.y / player.blocksize +
-              player.group.position.y / player.blocksize
-          );
-          if (block.material == material1 || block.material == material3)
-            blockdata[x][y] = 1;
+          var x = Math.floor(block.position.x / player.blocksize + player.group.position.x / player.blocksize);
+          var y = Math.floor(block.position.y / player.blocksize + player.group.position.y / player.blocksize);
+          console.log("Setting block at position: " + x + " and " + y);
+          if (block.material == material1 || block.material == material3) blockdata[x][y] = 1;
           else blockdata[x][y] = 2;
         }
         //Move pieces down
         applyGravity();
 
         //Reset player back up top
-        player.group.position.y =
-          player.blocksize * height + player.blocksize / 2;
+        player.group.position.y = player.blocksize * height + player.blocksize / 2;
         player.group.position.x = (player.blocksize * width) / 2;
 
         //Check if player spawn on an existing block. GAME OVER Scenaripo
@@ -285,8 +260,7 @@ TODO:
           for (var y = 0; y < height; y++) {
             if (blockdata[x][y]) {
               //add block on mesh
-              if (blockdata[x][y] == 2)
-                var mesh = new THREE.Mesh(geometry, material2);
+              if (blockdata[x][y] == 2) var mesh = new THREE.Mesh(geometry, material2);
               else var mesh = new THREE.Mesh(geometry, material1);
               mesh.position.x = player.blocksize * x + player.blocksize / 2;
               mesh.position.y = player.blocksize * y + player.blocksize;
@@ -303,7 +277,7 @@ TODO:
             player.forcedrop = true;
             player.lockcount = 5;
           }
-          if (keys[37] && player.group.position.x / player.blocksize > 0) {
+          if (keys[37] && player.group.position.x / player.blocksize > 1) {
             //Left arrow
             // console.log(" Left player.x = " +player.x);
             //Hit detection left
@@ -326,7 +300,7 @@ TODO:
               player.lockcount = 5;
             }
           }
-          if (keys[39] && player.group.position.x / player.blocksize < width) {
+          if (keys[39] && player.group.position.x / player.blocksize < width - 1) {
             //Right arrow
             //Hit detection
             var hit = false;
@@ -357,12 +331,9 @@ TODO:
             // 0 1   >  1 2
             // 3 2      0 3
             var og = player.group.children[0].material;
-            player.group.children[0].material =
-              player.group.children[1].material;
-            player.group.children[1].material =
-              player.group.children[2].material;
-            player.group.children[2].material =
-              player.group.children[3].material;
+            player.group.children[0].material = player.group.children[1].material;
+            player.group.children[1].material = player.group.children[2].material;
+            player.group.children[2].material = player.group.children[3].material;
             player.group.children[3].material = og;
             player.spincount = 15;
           }
@@ -373,12 +344,9 @@ TODO:
             // player.group.rotation.z-=Math.PI / 2;
             var og = player.group.children[3].material;
             // player.group.children[0].material=player.group.children[3].material;
-            player.group.children[3].material =
-              player.group.children[2].material;
-            player.group.children[2].material =
-              player.group.children[1].material;
-            player.group.children[1].material =
-              player.group.children[0].material;
+            player.group.children[3].material = player.group.children[2].material;
+            player.group.children[2].material = player.group.children[1].material;
+            player.group.children[1].material = player.group.children[0].material;
             player.group.children[0].material = og;
             player.spincount = 15;
           }
@@ -403,15 +371,9 @@ TODO:
           var x = Math.floor(current.position.x / player.blocksize);
           var y = current.position.y / player.blocksize - 1;
           if (glowdata[x][y]) {
-            if (
-              inactiveBlocks.children[i].material == material1 ||
-              inactiveBlocks.children[i].material == material3
-            )
+            if (inactiveBlocks.children[i].material == material1 || inactiveBlocks.children[i].material == material3)
               inactiveBlocks.children[i].material = material3;
-            if (
-              inactiveBlocks.children[i].material == material2 ||
-              inactiveBlocks.children[i].material == material4
-            )
+            if (inactiveBlocks.children[i].material == material2 || inactiveBlocks.children[i].material == material4)
               inactiveBlocks.children[i].material = material4;
           }
         }
@@ -476,11 +438,7 @@ TODO:
               for (var y = 0; y < height; y++) {
                 var starting = blockdata[x][y];
                 if (starting && x < width - 1 && y < height - 1) {
-                  if (
-                    starting == blockdata[x + 1][y] &&
-                    starting == blockdata[x][y + 1] &&
-                    starting == blockdata[x + 1][y + 1]
-                  ) {
+                  if (starting == blockdata[x + 1][y] && starting == blockdata[x][y + 1] && starting == blockdata[x + 1][y + 1]) {
                     // adjaect hits
                     // console.log('GLOW!');
                     glowdata[x][y] = 1;
