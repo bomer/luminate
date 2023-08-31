@@ -1,23 +1,24 @@
-
 <!DOCTYPE html>
 <html lang="en">
-	<head>
-		<title>Luminate</title>
-		<meta charset="utf-8">
-		<meta name="viewport" content="width=device-width, user-scalable=no, minimum-scale=1.0, maximum-scale=1.0">
-		<style>
-			body {
-				margin: 0px;
-				background-color: #000000;
-				overflow: hidden;
-			}
-		</style>
-	</head>
-	<body>
-	<script src="three.min.js"></script>
-	<script>
-
-/*
+  <head>
+    <title>Luminate</title>
+    <meta charset="utf-8" />
+    <meta
+      name="viewport"
+      content="width=device-width, user-scalable=no, minimum-scale=1.0, maximum-scale=1.0"
+    />
+    <style>
+      body {
+        margin: 0px;
+        background-color: #000000;
+        overflow: hidden;
+      }
+    </style>
+  </head>
+  <body>
+    <script src="three.min.js"></script>
+    <script>
+      /*
 Lumines clone, by James O'Toole
 TODO:
 -BUG
@@ -27,419 +28,498 @@ TODO:
 -Pause/sync to local storage
 */
 
-var scene, camera, renderer;
-var geometry, material1,material2, mesh;
-var inactiveBlocks;// = []; //16 wide by 10 height as on PSP
-var player = {};
-var width=16;
-var height=10;
-var debugtext;
-var dropspeed=25;
-var dropcounter=0;
-var glowCount=0;
-var removeCounter=0;
-var safetyCounter=0;
-var removeBlock;
+      var scene, camera, renderer;
+      var geometry, material1, material2, mesh;
+      var inactiveBlocks; // = []; //16 wide by 10 height as on PSP
+      var player = {};
+      var width = 16;
+      var height = 10;
+      var debugtext;
+      var dropspeed = 25;
+      var dropcounter = 0;
+      var glowCount = 0;
+      var removeCounter = 0;
+      var safetyCounter = 0;
+      var removeBlock;
 
-var score=0;
-var blockdata;
-var glowdata=[];
-var keys = []; //Key Binding
-window.onkeyup = function(e) {keys[e.keyCode]=false; player.movelock=false; player.spinlock=false;}
-window.onkeydown = function(e) {keys[e.keyCode]=true; console.log('key down ' + e.keyCode);}
+      var score = 0;
+      var blockdata;
+      var glowdata = [];
+      var keys = []; //Key Binding
+      window.onkeyup = function (e) {
+        keys[e.keyCode] = false;
+        player.movelock = false;
+        player.spinlock = false;
+      };
+      window.onkeydown = function (e) {
+        keys[e.keyCode] = true;
+        console.log("key down " + e.keyCode);
+      };
 
-init();
-animate();
+      init();
+      animate();
 
-function init() {
+      function init() {
+        blockdata = new Array(width);
+        for (var i = 0; i < width; i++) {
+          blockdata[i] = new Array(height);
+        }
+        glowdata = blockdata;
 
-	blockdata = new Array(width);
-	for (var i = 0; i < width; i++) {
-		blockdata[i] = new Array(height);
-	}
-	glowdata=blockdata;
+        //player.init
+        player.blocksize = window.innerWidth / width;
+        (player.lockcount = 0), (player.spincount = 0);
+        //Camera
+        scene = new THREE.Scene();
+        camera = new THREE.PerspectiveCamera(
+          60,
+          window.innerWidth / window.innerHeight,
+          1,
+          10000
+        );
+        camera.position.z = window.innerHeight * 1.15;
+        //Offset from 00 being center
+        camera.position.x = (width / 2) * player.blocksize;
+        camera.position.y =
+          (height / 2) * player.blocksize + player.blocksize * 0.75;
 
-	//player.init
-	player.blocksize=window.innerWidth / width;
-	player.lockcount=0,player.spincount=0;
-	//Camera
-    scene = new THREE.Scene();
-    camera = new THREE.PerspectiveCamera( 60, window.innerWidth / window.innerHeight, 1, 10000 );
-    camera.position.z = window.innerHeight*1.15;
-    //Offset from 00 being center
-    camera.position.x = width/2 * player.blocksize ;
-    camera.position.y = height/2 * player.blocksize + player.blocksize*0.75;
+        var scale = 0.95;
+        geometry = new THREE.BoxGeometry(
+          player.blocksize * scale,
+          player.blocksize * scale,
+          player.blocksize * scale
+        );
+        material1 = new THREE.MeshPhongMaterial({
+          color: 0xff0000,
+          wireframe: false,
+          transparent: false,
+        });
+        material2 = new THREE.MeshPhongMaterial({
+          color: 0xffffff,
+          wireframe: false,
+          transparent: false,
+        });
+        material3 = new THREE.MeshPhongMaterial({
+          color: 0xffaa00,
+          wireframe: false,
+          transparent: false,
+        });
+        material4 = new THREE.MeshPhongMaterial({
+          color: 0xffaaaa,
+          wireframe: false,
+          transparent: false,
+        });
 
-    var scale=0.95;
-    geometry = new THREE.BoxGeometry( player.blocksize*scale, player.blocksize*scale,player.blocksize*scale);
-    material1 = new THREE.MeshPhongMaterial( { color: 0xff0000, wireframe: false, transparent: false } );
-    material2 = new THREE.MeshPhongMaterial( { color: 0xffffff, wireframe: false, transparent: false } );
-    material3 = new THREE.MeshPhongMaterial( { color: 0xffaa00, wireframe: false, transparent: false } );
-    material4 = new THREE.MeshPhongMaterial( { color: 0xffaaaa, wireframe: false, transparent: false } );
+        //Empty blocks
+        inactiveBlocks = new THREE.Object3D();
+        glowingLights = new THREE.Object3D();
 
-    //Empty blocks
-    inactiveBlocks = new THREE.Object3D();
-    glowingLights  = new THREE.Object3D();
+        //setup player block
+        player.group = new THREE.Object3D(); //create an empty container
+        player.group.position.y =
+          player.blocksize * height + player.blocksize / 2;
+        player.group.position.x = (player.blocksize * width) / 2;
+        mesh = new THREE.Mesh(geometry, material1);
+        mesh.position.x -= player.blocksize / 2;
+        mesh.position.y += player.blocksize / 2;
+        player.group.add(mesh);
 
-    //setup player block 
-    player.group = new THREE.Object3D();//create an empty container 
-    player.group.position.y=player.blocksize*height + player.blocksize/2; 
-    player.group.position.x=player.blocksize*width/2;     
-    mesh = new THREE.Mesh( geometry, material1 );
-    mesh.position.x-=player.blocksize/2;
-    mesh.position.y+=player.blocksize/2;
-    player.group.add(mesh);
-	
-    mesh = new THREE.Mesh( geometry, material1 );
-    mesh.position.x+=player.blocksize;
-    mesh.position.x-=player.blocksize/2;
-    mesh.position.y+=player.blocksize/2;
-    player.group.add(mesh);
+        mesh = new THREE.Mesh(geometry, material1);
+        mesh.position.x += player.blocksize;
+        mesh.position.x -= player.blocksize / 2;
+        mesh.position.y += player.blocksize / 2;
+        player.group.add(mesh);
 
-    mesh = new THREE.Mesh( geometry, material1 );
-    mesh.position.x-=player.blocksize/2;
-    mesh.position.y+=player.blocksize/2;
-    mesh.position.x+=player.blocksize;
-    mesh.position.y-=player.blocksize;
-    player.group.add(mesh);
+        mesh = new THREE.Mesh(geometry, material1);
+        mesh.position.x -= player.blocksize / 2;
+        mesh.position.y += player.blocksize / 2;
+        mesh.position.x += player.blocksize;
+        mesh.position.y -= player.blocksize;
+        player.group.add(mesh);
 
-    mesh = new THREE.Mesh( geometry, material1 );
-    mesh.position.x-=player.blocksize/2;
-    mesh.position.y+=player.blocksize/2;
-    mesh.position.y-=player.blocksize;
-    player.group.add(mesh);
+        mesh = new THREE.Mesh(geometry, material1);
+        mesh.position.x -= player.blocksize / 2;
+        mesh.position.y += player.blocksize / 2;
+        mesh.position.y -= player.blocksize;
+        player.group.add(mesh);
 
-    //Block for high score
-    var boxGeometry = new THREE.BoxGeometry(1,player.blocksize*scale /5 ,player.blocksize*scale/5);
-    removeBlock = new THREE.Mesh( boxGeometry, material1 );
-    removeBlock.position.x+=player.blocksize;
-    // removeBlock.position.z-=player.blocksize*1;
-    removeBlock.position.y+=player.blocksize/2;
-    scene.add(removeBlock);
+        //Block for high score
+        var boxGeometry = new THREE.BoxGeometry(
+          1,
+          (player.blocksize * scale) / 5,
+          (player.blocksize * scale) / 5
+        );
+        removeBlock = new THREE.Mesh(boxGeometry, material1);
+        removeBlock.position.x += player.blocksize;
+        // removeBlock.position.z-=player.blocksize*1;
+        removeBlock.position.y += player.blocksize / 2;
+        scene.add(removeBlock);
 
-    scene.add( player.group );//when done, add the group to the scene
-    scene.add(inactiveBlocks);
-    scene.add(glowingLights);
-    randomColours();
+        scene.add(player.group); //when done, add the group to the scene
+        scene.add(inactiveBlocks);
+        scene.add(glowingLights);
+        randomColours();
 
-    renderer = new THREE.WebGLRenderer({ antialias: true });
-    renderer.setSize( window.innerWidth, window.innerHeight );
+        renderer = new THREE.WebGLRenderer({ antialias: true });
+        renderer.setSize(window.innerWidth, window.innerHeight);
 
-    //lights
-    var lights = [];
-	lights[ 0 ] = new THREE.PointLight( 0xffffff, 1, 0 );
-	lights[ 1 ] = new THREE.PointLight( 0xffffff, 1, 0 );
-	lights[ 2 ] = new THREE.PointLight( 0xffffff, 1, 0 );
-	lights[ 3 ] = new THREE.PointLight( 0xffffff, 1, 0 );
+        //lights
+        var lights = [];
+        lights[0] = new THREE.PointLight(0xffffff, 1, 0);
+        lights[1] = new THREE.PointLight(0xffffff, 1, 0);
+        lights[2] = new THREE.PointLight(0xffffff, 1, 0);
+        lights[3] = new THREE.PointLight(0xffffff, 1, 0);
 
-	var lil=400;
-	var big=800;
-	lights[ 0 ].position.set( 0, width, 0 );
-	lights[ 1 ].position.set( lil, big, lil );
-	lights[ 2 ].position.set( - lil, lil, big );
-	lights[ 3 ].position.set( lil, - big, - lil );
+        var lil = 400;
+        var big = 800;
+        lights[0].position.set(0, width, 0);
+        lights[1].position.set(lil, big, lil);
+        lights[2].position.set(-lil, lil, big);
+        lights[3].position.set(lil, -big, -lil);
 
-	scene.add( lights[ 0 ] );
-	// scene.add( lights[ 1 ] );
-	scene.add( lights[ 2 ] );
-	scene.add( lights[ 3 ] );
+        scene.add(lights[0]);
+        // scene.add( lights[ 1 ] );
+        scene.add(lights[2]);
+        scene.add(lights[3]);
 
-	debugtext = document.createElement('div');
-	debugtext.style.position = 'absolute';
-	debugtext.style.width = 32;
-	debugtext.style.height = 32;
-	debugtext.style.color="white";
-	debugtext.innerHTML = "hi there!";
-	debugtext.style.top = 32 + 'px';
-	debugtext.style.left = 32 + 'px';
-	document.body.appendChild(debugtext);	  
-    document.body.appendChild( renderer.domElement );
+        debugtext = document.createElement("div");
+        debugtext.style.position = "absolute";
+        debugtext.style.width = 32;
+        debugtext.style.height = 32;
+        debugtext.style.color = "white";
+        debugtext.innerHTML = "hi there!";
+        debugtext.style.top = 32 + "px";
+        debugtext.style.left = 32 + "px";
+        document.body.appendChild(debugtext);
+        document.body.appendChild(renderer.domElement);
+      }
 
-}
+      function randomColours() {
+        for (var i = 0; i < player.group.children.length; i++) {
+          if (Math.random() * 2 >= 1.0) {
+            player.group.children[i].material = material1;
+            player.group.children[i].color = 0;
+          } else {
+            player.group.children[i].material = material2;
+            player.group.children[i].color = 1;
+          }
+        }
+      }
+      function resetBlock() {
+        debugtext.innerHTML = debugtext.innerHTML + "HIT!!!";
+        //Update block data - Put player int blockdata
+        for (var i = 0; i < player.group.children.length; i++) {
+          var block = player.group.children[i];
+          var x = Math.floor(
+            block.position.x / player.blocksize +
+              player.group.position.x / player.blocksize
+          );
+          var y = Math.floor(
+            block.position.y / player.blocksize +
+              player.group.position.y / player.blocksize
+          );
+          if (block.material == material1 || block.material == material3)
+            blockdata[x][y] = 1;
+          else blockdata[x][y] = 2;
+        }
+        //Move pieces down
+        applyGravity();
 
-function randomColours(){	
-	for (var i = 0; i < player.group.children.length; i++) {
-		if(Math.random()*2>=1.0){
-			player.group.children[i].material=material1;
-			player.group.children[i].color=0;
-		}
-		else{
-			player.group.children[i].material=material2;
-			player.group.children[i].color=1;
-		}
-	}
-}
-function resetBlock(){
-	debugtext.innerHTML =  debugtext.innerHTML + "HIT!!!";
-	//Update block data - Put player int blockdata
-	for (var i = 0; i < player.group.children.length; i++) {
-		var block = player.group.children[i];
-		var x = Math.floor(block.position.x/player.blocksize + player.group.position.x/player.blocksize);
-		var y =  Math.floor(block.position.y/player.blocksize + player.group.position.y/player.blocksize);
-		if(block.material==material1 || block.material==material3)
-			blockdata[x][y]=1;
-		else
-			blockdata[x][y]=2;
-	}
-	//Move pieces down
-	applyGravity();
-	
-	//Reset player back up top
-	player.group.position.y=player.blocksize*height + player.blocksize/2;
-	player.group.position.x=player.blocksize*width/2;  
+        //Reset player back up top
+        player.group.position.y =
+          player.blocksize * height + player.blocksize / 2;
+        player.group.position.x = (player.blocksize * width) / 2;
 
-	//Check if player spawn on an existing block. GAME OVER Scenaripo
-	var mess = inactiveBlocks.children;
-	for (var i = 0; i < mess.length; i++) {
-		// if(mess[i].position.x == player.group.position.x)
-		var xdif=mess[i].position.x - player.group.position.x;
-		var ydif=mess[i].position.y - player.group.position.y;
-		if(xdif<player.blocksize*2 && xdif>-player.blocksize*2 && ydif<player.blocksize*2.1 && ydif>-player.blocksize*2.1 ){//hit
-			//GAME OVER - TODO
-			// init();
-			// alert('Game over');
-		}
-	}
-	rebuildMesh();
-	randomColours();
-}
+        //Check if player spawn on an existing block. GAME OVER Scenaripo
+        var mess = inactiveBlocks.children;
+        for (var i = 0; i < mess.length; i++) {
+          // if(mess[i].position.x == player.group.position.x)
+          var xdif = mess[i].position.x - player.group.position.x;
+          var ydif = mess[i].position.y - player.group.position.y;
+          if (
+            xdif < player.blocksize * 2 &&
+            xdif > -player.blocksize * 2 &&
+            ydif < player.blocksize * 2.1 &&
+            ydif > -player.blocksize * 2.1
+          ) {
+            //hit
+            //GAME OVER - TODO
+            // init();
+            // alert('Game over');
+          }
+        }
+        rebuildMesh();
+        randomColours();
+      }
 
-function applyGravity(){
-	//Apply Gravity,
-	//Go through each row, and "suck" down
-	for (var x = 0; x < width; x++) {
-		for (var y = 0; y < height; y++) {
-			if(!blockdata[x][y]){ //only if there isn't a block there already
-				// var uphit=false;
-				for (var i = y+1; i < height ; i++) { // scan upwards
-					if(blockdata[x][i]){ // if hit
-						blockdata[x][y]=blockdata[x][i]; // swap with hit block
-						blockdata[x][i]=0;
-						break;
-					}
-				}
-			}
-		}
-	}
-}
+      function applyGravity() {
+        //Apply Gravity,
+        //Go through each row, and "suck" down
+        for (var x = 0; x < width; x++) {
+          for (var y = 0; y < height; y++) {
+            if (!blockdata[x][y]) {
+              //only if there isn't a block there already
+              // var uphit=false;
+              for (var i = y + 1; i < height; i++) {
+                // scan upwards
+                if (blockdata[x][i]) {
+                  // if hit
+                  blockdata[x][y] = blockdata[x][i]; // swap with hit block
+                  blockdata[x][i] = 0;
+                  break;
+                }
+              }
+            }
+          }
+        }
+      }
 
-function rebuildMesh(){
-	//Clean up old mesh
-	for (var i = 0; i < inactiveBlocks.children.length; i++) {
-		inactiveBlocks.remove(inactiveBlocks.children[i]);
-	}
-	//Rebuild Mesh from data
-	for (var x = 0; x <  width; x++) {
-		for (var y = 0; y <  height; y++) {
-			if (blockdata[x][y]){
-				//add block on mesh
-				if (blockdata[x][y]==2)
-					var mesh = new THREE.Mesh( geometry, material2 );
-				else
-					var mesh = new THREE.Mesh( geometry, material1 );			    
-			    mesh.position.x=player.blocksize*x + player.blocksize/2;
-			    mesh.position.y=player.blocksize*y + player.blocksize;
-				inactiveBlocks.add(mesh);
-			}
-		}
-		
-	}
-}
+      function rebuildMesh() {
+        //Clean up old mesh
+        for (var i = 0; i < inactiveBlocks.children.length; i++) {
+          inactiveBlocks.remove(inactiveBlocks.children[i]);
+        }
+        //Rebuild Mesh from data
+        for (var x = 0; x < width; x++) {
+          for (var y = 0; y < height; y++) {
+            if (blockdata[x][y]) {
+              //add block on mesh
+              if (blockdata[x][y] == 2)
+                var mesh = new THREE.Mesh(geometry, material2);
+              else var mesh = new THREE.Mesh(geometry, material1);
+              mesh.position.x = player.blocksize * x + player.blocksize / 2;
+              mesh.position.y = player.blocksize * y + player.blocksize;
+              inactiveBlocks.add(mesh);
+            }
+          }
+        }
+      }
 
-function handleInput(){	
-	if (player.lockcount == 0){
-		if (keys[40]){//DOWN arrow, force in update function
-			player.forcedrop=true;
-			player.lockcount=5;
-		}
-		if (keys[37] && player.group.position.x/player.blocksize >1){	//Left arrow
-			// console.log(" Left player.x = " +player.x);
-			//Hit detection left
-			var hit = false;
-			var mess = inactiveBlocks.children;
-			for (var i = 0; i < mess.length; i++) {
-				var xdif=mess[i].position.x - player.group.position.x +1;
-				var ydif=mess[i].position.y - player.group.position.y;				
-				if(xdif<player.blocksize*1 && xdif>-player.blocksize*2 && ydif<player.blocksize*2 && ydif>-player.blocksize*2 ){
-					hit=true;
-				}
-			}
-			if(!hit){
-				player.group.position.x-=player.blocksize;
-				player.lockcount=5;
-			}
+      function handleInput() {
+        if (player.lockcount == 0) {
+          if (keys[40]) {
+            //DOWN arrow, force in update function
+            player.forcedrop = true;
+            player.lockcount = 5;
+          }
+          if (keys[37] && player.group.position.x / player.blocksize > 1) {
+            //Left arrow
+            // console.log(" Left player.x = " +player.x);
+            //Hit detection left
+            var hit = false;
+            var mess = inactiveBlocks.children;
+            for (var i = 0; i < mess.length; i++) {
+              var xdif = mess[i].position.x - player.group.position.x + 1;
+              var ydif = mess[i].position.y - player.group.position.y;
+              if (
+                xdif < player.blocksize * 1 &&
+                xdif > -player.blocksize * 2 &&
+                ydif < player.blocksize * 2 &&
+                ydif > -player.blocksize * 2
+              ) {
+                hit = true;
+              }
+            }
+            if (!hit) {
+              player.group.position.x -= player.blocksize;
+              player.lockcount = 5;
+            }
+          }
+          if (keys[39] && player.group.position.x / player.blocksize < 15) {
+            //Right arrow
+            //Hit detection
+            var hit = false;
+            var mess = inactiveBlocks.children;
+            for (var i = 0; i < mess.length; i++) {
+              var xdif = mess[i].position.x - player.group.position.x - 1;
+              var ydif = mess[i].position.y - player.group.position.y;
+              if (
+                xdif < player.blocksize * 2 &&
+                xdif > -player.blocksize * 1 &&
+                ydif < player.blocksize * 2.1 &&
+                ydif > -player.blocksize * 2.1
+              ) {
+                hit = true;
+              }
+            }
+            if (!hit) {
+              player.group.position.x += player.blocksize;
+              player.lockcount = 5;
+            }
+          }
+        }
+        if (player.lockcount > 0) player.lockcount--;
+        if (player.spincount == 0) {
+          if (keys[65] || keys[81] || keys[90]) {
+            //Q A Z - LEFT
+            // player.group.rotation.z+=Math.PI / 2; OLD METHOD, doesnt work with grid placement :(
+            // 0 1   >  1 2
+            // 3 2      0 3
+            var og = player.group.children[0].material;
+            player.group.children[0].material =
+              player.group.children[1].material;
+            player.group.children[1].material =
+              player.group.children[2].material;
+            player.group.children[2].material =
+              player.group.children[3].material;
+            player.group.children[3].material = og;
+            player.spincount = 15;
+          }
+          // 0 1   >  3 0
+          // 3 2      2 1
+          if (keys[83] || keys[87] || keys[88]) {
+            // W S X - RIGHT
+            // player.group.rotation.z-=Math.PI / 2;
+            var og = player.group.children[3].material;
+            // player.group.children[0].material=player.group.children[3].material;
+            player.group.children[3].material =
+              player.group.children[2].material;
+            player.group.children[2].material =
+              player.group.children[1].material;
+            player.group.children[1].material =
+              player.group.children[0].material;
+            player.group.children[0].material = og;
+            player.spincount = 15;
+          }
+        }
+        if (player.spincount > 0) player.spincount--;
+      }
+      function debugText() {
+        debugtext.innerHTML =
+          "x: " +
+          player.group.position.x / player.blocksize +
+          "  y:" +
+          player.group.position.y / player.blocksize +
+          "<br> glowcount= " +
+          glowCount +
+          " remove:" +
+          removeCounter;
+      }
 
-		}
-		if (keys[39] && player.group.position.x/player.blocksize <15){	//Right arrow
-			//Hit detection
-			var hit = false;
-			var mess = inactiveBlocks.children;
-			for (var i = 0; i < mess.length; i++) {
-				var xdif=mess[i].position.x - player.group.position.x -1;
-				var ydif=mess[i].position.y - player.group.position.y;				
-				if(xdif<player.blocksize*2 && xdif>-player.blocksize*1 && ydif<player.blocksize*2.1 && ydif>-player.blocksize*2.1 ){
-					hit=true;
-				}
-			}
-			if(!hit){
-				player.group.position.x+=player.blocksize;
-				player.lockcount=5;
-			}
-		}
-	}
-	if (player.lockcount > 0)
-		player.lockcount--;
-	if (player.spincount == 0){
+      function updateGlowingBlocks() {
+        for (var i = 0; i < inactiveBlocks.children.length; i++) {
+          var current = inactiveBlocks.children[i];
+          var x = Math.floor(current.position.x / player.blocksize);
+          var y = current.position.y / player.blocksize - 1;
+          if (glowdata[x][y]) {
+            if (
+              inactiveBlocks.children[i].material == material1 ||
+              inactiveBlocks.children[i].material == material3
+            )
+              inactiveBlocks.children[i].material = material3;
+            if (
+              inactiveBlocks.children[i].material == material2 ||
+              inactiveBlocks.children[i].material == material4
+            )
+              inactiveBlocks.children[i].material = material4;
+          }
+        }
+      }
 
-		if(keys[65] || keys[81] || keys[90]){//Q A Z - LEFT			
-			// player.group.rotation.z+=Math.PI / 2; OLD METHOD, doesnt work with grid placement :(			
-			// 0 1   >  1 2   
-			// 3 2      0 3
-			var og = player.group.children[0].material;
-			player.group.children[0].material=player.group.children[1].material;
-			player.group.children[1].material=player.group.children[2].material;
-			player.group.children[2].material=player.group.children[3].material;
-			player.group.children[3].material=og;
-			player.spincount=15;			
-		}
-		// 0 1   >  3 0   
-		// 3 2      2 1
-		if(keys[83] || keys[87] ||keys[88]){// W S X - RIGHT
-			// player.group.rotation.z-=Math.PI / 2;		
-			var og = player.group.children[3].material;
-			// player.group.children[0].material=player.group.children[3].material;
-			player.group.children[3].material=player.group.children[2].material;
-			player.group.children[2].material=player.group.children[1].material;
-			player.group.children[1].material=player.group.children[0].material;
-			player.group.children[0].material=og;
-			player.spincount=15;			
-		}
-	}
-	if (player.spincount > 0)
-		player.spincount--;
-	
-}
-function debugText(){
-	debugtext.innerHTML = "x: " +  player.group.position.x/player.blocksize + "  y:" + player.group.position.y/player.blocksize +
-						   "<br> glowcount= " + glowCount + " remove:" + removeCounter;
-}
+      function countArrayContent(arr) {
+        var count = 0;
+        for (var i = 0; i < arr.length; i++) {
+          var currentRow = arr[i];
+          for (var y = 0; y < currentRow.length; y++) {
+            if (currentRow[y]) {
+              //match
+              count++;
+            }
+          }
+        }
+        return count;
+      }
 
-function updateGlowingBlocks(){
-	for (var i = 0; i < inactiveBlocks.children.length; i++) {
-		var current = inactiveBlocks.children[i];		
-		var x = Math.floor(current.position.x/player.blocksize);
-		var y = (current.position.y/player.blocksize) - 1;		
-		if(glowdata[x][y]){		
-			if(inactiveBlocks.children[i].material==material1 || inactiveBlocks.children[i].material==material3)
-				inactiveBlocks.children[i].material=material3;
-			if(inactiveBlocks.children[i].material==material2 || inactiveBlocks.children[i].material==material4)
-				inactiveBlocks.children[i].material=material4;
-		}
-	}
-}
+      function updateGame() {
+        //Handle Input First
+        handleInput();
 
-function countArrayContent(arr){
-	var count=0;
-	for (var i = 0; i < arr.length; i++) {
-		var currentRow = arr[i];
-		for (var y = 0; y < currentRow.length; y++) {
-			if(currentRow[y]){//match
-				count++;
-			}
-		}
-	}
-	return count;
-}
+        if (safetyCounter > 1) safetyCounter--;
+        else if (safetyCounter == 1) {
+          resetBlock();
+          safetyCounter = 0;
+        } else {
+          dropcounter++;
+          if (dropcounter > dropspeed || player.forcedrop) {
+            if (player.forcedrop) player.forcedrop = false;
+            player.group.position.y -= player.blocksize;
+            dropcounter = 0;
 
-function updateGame(){
-	//Handle Input First
-	handleInput();
+            //Hit detection main block
+            var mess = inactiveBlocks.children;
+            for (var i = 0; i < mess.length; i++) {
+              var xdif = mess[i].position.x - player.group.position.x;
+              var ydif = mess[i].position.y - player.group.position.y;
+              if (
+                xdif < player.blocksize * 1 &&
+                xdif > -player.blocksize * 1 &&
+                ydif < player.blocksize * 2 &&
+                ydif > -player.blocksize * 2
+              ) {
+                safetyCounter = 30;
+              }
+            }
+            if (player.group.position.y / player.blocksize <= 1) {
+              //bottom
+              resetBlock();
+            }
 
-	if (safetyCounter>1)
-		safetyCounter--;
- 	else if(safetyCounter==1){
-		resetBlock();
-		safetyCounter=0;					
- 	}
- 	else{
- 		
-	dropcounter++;
-	if(dropcounter>dropspeed || player.forcedrop){
-		if(player.forcedrop)
-			player.forcedrop=false;
-		player.group.position.y-=player.blocksize;
-		dropcounter=0;
+            //Block 2x2 GLOW detection
+            glowCount = countArrayContent(glowdata);
+            glowdata = new Array(width);
+            for (var i = 0; i < width; i++) {
+              glowdata[i] = new Array(height);
+            }
+            for (var x = 0; x < width; x++) {
+              for (var y = 0; y < height; y++) {
+                var starting = blockdata[x][y];
+                if (starting && x < width - 1 && y < height - 1) {
+                  if (
+                    starting == blockdata[x + 1][y] &&
+                    starting == blockdata[x][y + 1] &&
+                    starting == blockdata[x + 1][y + 1]
+                  ) {
+                    // adjaect hits
+                    // console.log('GLOW!');
+                    glowdata[x][y] = 1;
+                    glowdata[x + 1][y] = 1;
+                    glowdata[x][y + 1] = 1;
+                    glowdata[x + 1][y + 1] = 1;
+                  }
+                }
+              }
+            }
+            var countDelta = countArrayContent(glowdata) - glowCount;
+            if (countDelta > 0) {
+              //Increase, reset timer
+              removeCounter += 29 * countDelta;
+            }
+            updateGlowingBlocks();
+          }
+        } //end
+        if (removeCounter > 0) removeCounter--;
+        if (removeCounter == 0 && glowCount > 0) {
+          //CLEAR GLOWING BLOXES
+          for (var x = 0; x < width; x++) {
+            for (var y = 0; y < height; y++) {
+              if (glowdata[x][y] == 1) {
+                blockdata[x][y] = 0;
+              }
+            }
+          }
+          applyGravity();
+          rebuildMesh();
+        }
+        removeBlock.scale.x = removeCounter;
+        debugText();
+      }
 
-		//Hit detection main block
-		var mess = inactiveBlocks.children;
-		for (var i = 0; i < mess.length; i++) {
-			var xdif=mess[i].position.x - player.group.position.x;
-			var ydif=mess[i].position.y - player.group.position.y;
-			if(xdif<player.blocksize*1 && xdif>-player.blocksize*1
-			 && ydif<player.blocksize*2 && ydif>-player.blocksize*2 ){
-				safetyCounter=30;				
-			}
-		}
-		if(player.group.position.y/player.blocksize<=1){ //bottom
-			resetBlock();
-		}
-
-		//Block 2x2 GLOW detection
-		glowCount=countArrayContent(glowdata);
-		glowdata=new Array(width);
-		for (var i = 0; i < width; i++) {
-			glowdata[i] = new Array(height);
-		}
-		for (var x = 0; x < width; x++) {
-			for (var y = 0; y < height; y++) {
-				var starting = blockdata[x][y];
-				if (starting && x < width-1 && y<height-1){
-					if(starting == blockdata[x+1][y]  && 
-					   starting == blockdata[x][y+1] && 
-					   starting == blockdata[x+1][y+1]){ // adjaect hits
-					   	// console.log('GLOW!');
-					   glowdata[x]  [y]=1;
-					   glowdata[x+1][y]=1;
-					   glowdata[x]  [y+1]=1;
-					   glowdata[x+1][y+1]=1;
-					}
-				}
-			}
-		}
-		var countDelta =  countArrayContent(glowdata) - glowCount;
-		if(countDelta > 0){
-			//Increase, reset timer
-			removeCounter+=29*countDelta;
-		}
-		updateGlowingBlocks();
-	}
-	}//end 
-	if(removeCounter>0)
-		removeCounter--;
-	if(removeCounter==0 && glowCount>0){
-		//CLEAR GLOWING BLOXES		
-		for (var x = 0; x <  width; x++) {
-			for (var y = 0; y <  height; y++) {
-				if (glowdata[x][y]==1){
-					blockdata[x][y]=0;
-				}
-			}
-		}		
-		applyGravity();
-		rebuildMesh();
-	}
-	removeBlock.scale.x = removeCounter;
-	debugText();
-}
-
-//GameLoops
-function animate() {
-    requestAnimationFrame( animate );
-    updateGame()
-    renderer.render( scene, camera );
-
-}
-		</script>
-
-	</body>
+      //GameLoops
+      function animate() {
+        requestAnimationFrame(animate);
+        updateGame();
+        renderer.render(scene, camera);
+      }
+    </script>
+  </body>
 </html>
