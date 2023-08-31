@@ -30,7 +30,7 @@ TODO:
       var inactiveBlocks; // = []; //16 wide by 10 height as on PSP
       var player = {};
       var width = 10;
-      var height = 18;
+      var height = 20;
       var debugtext;
       var dropspeed = 25;
       var dropcounter = 0;
@@ -38,6 +38,9 @@ TODO:
       var removeCounter = 0;
       var safetyCounter = 0;
       var removeBlock;
+
+      var mouse = {};
+      var ongoingTouches = [];
 
       var score = 0;
       var blockdata;
@@ -87,12 +90,12 @@ TODO:
           transparent: false,
         });
         material3 = new THREE.MeshPhongMaterial({
-          color: 0xffaa00,
+          color: 0x80c902, // green
           wireframe: false,
           transparent: false,
         });
         material4 = new THREE.MeshPhongMaterial({
-          color: 0xffaaaa,
+          color: 0xffaaaa, //pinky
           wireframe: false,
           transparent: false,
         });
@@ -325,33 +328,42 @@ TODO:
         }
         if (player.lockcount > 0) player.lockcount--;
         if (player.spincount == 0) {
+          //Q A Z - LEFT
+
           if (keys[65] || keys[81] || keys[90]) {
-            //Q A Z - LEFT
-            // player.group.rotation.z+=Math.PI / 2; OLD METHOD, doesnt work with grid placement :(
-            // 0 1   >  1 2
-            // 3 2      0 3
-            var og = player.group.children[0].material;
-            player.group.children[0].material = player.group.children[1].material;
-            player.group.children[1].material = player.group.children[2].material;
-            player.group.children[2].material = player.group.children[3].material;
-            player.group.children[3].material = og;
-            player.spincount = 15;
+            spinLeft();
           }
+
+          // W S X - RIGHT
           // 0 1   >  3 0
           // 3 2      2 1
           if (keys[83] || keys[87] || keys[88]) {
-            // W S X - RIGHT
-            // player.group.rotation.z-=Math.PI / 2;
-            var og = player.group.children[3].material;
-            // player.group.children[0].material=player.group.children[3].material;
-            player.group.children[3].material = player.group.children[2].material;
-            player.group.children[2].material = player.group.children[1].material;
-            player.group.children[1].material = player.group.children[0].material;
-            player.group.children[0].material = og;
-            player.spincount = 15;
+            spinRight();
           }
         }
         if (player.spincount > 0) player.spincount--;
+      }
+      function spinLeft() {
+        // player.group.rotation.z+=Math.PI / 2; OLD METHOD, doesnt work with grid placement :(
+        // 0 1   >  1 2
+        // 3 2      0 3
+        var og = player.group.children[0].material;
+
+        player.group.children[0].material = player.group.children[1].material;
+        player.group.children[1].material = player.group.children[2].material;
+        player.group.children[2].material = player.group.children[3].material;
+        player.group.children[3].material = og;
+        player.spincount = 15;
+      }
+      function spinRight() {
+        // player.group.rotation.z-=Math.PI / 2;
+        var og = player.group.children[3].material;
+        // player.group.children[0].material=player.group.children[3].material;
+        player.group.children[3].material = player.group.children[2].material;
+        player.group.children[2].material = player.group.children[1].material;
+        player.group.children[1].material = player.group.children[0].material;
+        player.group.children[0].material = og;
+        player.spincount = 15;
       }
       function debugText() {
         debugtext.innerHTML =
@@ -363,6 +375,9 @@ TODO:
           glowCount +
           " remove:" +
           removeCounter;
+
+        if (mouse.x)
+          debugtext.innerHTML += "tx:" + Math.floor(mouse.x / player.blocksize) + "ty: " + Math.floor(mouse.y / player.blocksize);
       }
 
       function updateGlowingBlocks() {
@@ -452,7 +467,7 @@ TODO:
             var countDelta = countArrayContent(glowdata) - glowCount;
             if (countDelta > 0) {
               //Increase, reset timer
-              removeCounter += 120 * countDelta;
+              removeCounter += 60 * 1.5 * countDelta;
             }
             updateGlowingBlocks();
           }
@@ -479,6 +494,101 @@ TODO:
         requestAnimationFrame(animate);
         updateGame();
         renderer.render(scene, camera);
+      }
+
+      //
+      //
+      //Event bind for touch input
+      //
+      //
+
+      // document.onmousemove = function (e) {
+      //   e = e || window.event;
+
+      //   mouse.x = e.clientX;
+      //   mouse.y = e.clientY;
+      // };
+
+      //Bind touch to mouse
+      let canvas = document.querySelectorAll("canvas")[0];
+      canvas.addEventListener("touchstart", handleStart, false);
+      canvas.addEventListener("touchend", handleEnd, false);
+      // canvas.addEventListener("touchcanccanvas", handleCancel, false);
+      canvas.addEventListener("touchmove", handleMove, false);
+
+      function ongoingTouchIndexById(idToFind) {
+        for (var i = 0; i < ongoingTouches.length; i++) {
+          var id = ongoingTouches[i].identifier;
+
+          if (id == idToFind) {
+            return i;
+          }
+        }
+        return -1; // not found
+      }
+
+      function copyTouch(touch) {
+        return { identifier: touch.identifier, pageX: touch.pageX, pageY: touch.pageY };
+      }
+
+      function handleStart(evt) {
+        // evt.preventDefault();
+        var touches = evt.changedTouches;
+
+        for (var i = 0; i < touches.length; i++) {
+          console.log("touchstart:" + i + "...");
+          ongoingTouches.push(copyTouch(touches[i]));
+          if (!player.locked || true) {
+            mouse.down = true;
+            mouse.startx = touches[i].pageX;
+            mouse.starty = touches[i].pageY;
+            mouse.x = touches[i].pageX;
+            mouse.y = touches[i].pageY;
+            mouse.startTime = Date.now();
+          }
+        }
+      }
+      function handleEnd(evt) {
+        evt.preventDefault();
+        var touches = evt.changedTouches;
+        // document.onmouseup();
+
+        mouse.endTime = Date.now();
+        //Trigger a spin if a quick tap
+        if (mouse.endTime - mouse.startTime < 100) {
+          spinLeft();
+        }
+
+        for (var i = 0; i < touches.length; i++) {
+          var idx = ongoingTouchIndexById(touches[i].identifier);
+          if (idx >= 0) {
+            ongoingTouches.splice(idx, 1); // remove it; we're done
+          } else {
+            console.log("can't figure out which touch to end");
+          }
+        }
+      }
+
+      function handleMove(evt) {
+        evt.preventDefault();
+        var el = document.getElementsByTagName("canvas")[0];
+        var ctx = el.getContext("2d");
+        var touches = evt.changedTouches;
+
+        for (var i = 0; i < touches.length; i++) {
+          // var color = colorForTouch(touches[i]);
+          var idx = ongoingTouchIndexById(touches[i].identifier);
+
+          if (idx >= 0) {
+            mouse.x = touches[i].pageX;
+            mouse.y = touches[i].pageY;
+
+            ongoingTouches.splice(idx, 1, copyTouch(touches[i])); // swap in the new touch record
+            // console.log(".");
+          } else {
+            console.log("can't figure out which touch to continue");
+          }
+        }
       }
     </script>
   </body>
