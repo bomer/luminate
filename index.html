@@ -16,21 +16,21 @@
     <script src="three.min.js"></script>
     <script>
       /*
-Lumines clone, by James O'Toole
-TODO:
--BUG
--Mobile Controls
--GAME OVER
--Menu/Score
--Pause/sync to local storage
-*/
+      Lumines clone, by James O'Toole
+      TODO:
+      -BUG
+      -Mobile Controls
+      -GAME OVER
+      -Menu/Score
+      -Pause/sync to local storage
+      */
 
       var scene, camera, renderer;
       var geometry, material1, material2, mesh;
       var inactiveBlocks; // = []; //16 wide by 10 height as on PSP
       var player = {};
       var width = 10;
-      var height = 20;
+      var height = 22;
       var debugtext;
       var dropspeed = 25;
       var dropcounter = 0;
@@ -192,6 +192,7 @@ TODO:
       }
       function resetBlock() {
         debugtext.innerHTML = debugtext.innerHTML + "HIT!!!";
+        player.swipedrop = false;
         //Update block data - Put player int blockdata
         for (var i = 0; i < player.group.children.length; i++) {
           var block = player.group.children[i];
@@ -280,63 +281,23 @@ TODO:
             player.forcedrop = true;
             player.lockcount = 5;
           }
+          //Left arrow
           if (keys[37] && player.group.position.x / player.blocksize > 1) {
-            //Left arrow
-            // console.log(" Left player.x = " +player.x);
-            //Hit detection left
-            var hit = false;
-            var mess = inactiveBlocks.children;
-            for (var i = 0; i < mess.length; i++) {
-              var xdif = mess[i].position.x - player.group.position.x + 1;
-              var ydif = mess[i].position.y - player.group.position.y;
-              if (
-                xdif < player.blocksize * 1 &&
-                xdif > -player.blocksize * 2 &&
-                ydif < player.blocksize * 2 &&
-                ydif > -player.blocksize * 2
-              ) {
-                hit = true;
-              }
-            }
-            if (!hit) {
-              player.group.position.x -= player.blocksize;
-              player.lockcount = 5;
-            }
+            moveLeft();
           }
+          //Right arrow
           if (keys[39] && player.group.position.x / player.blocksize < width - 1) {
-            //Right arrow
-            //Hit detection
-            var hit = false;
-            var mess = inactiveBlocks.children;
-            for (var i = 0; i < mess.length; i++) {
-              var xdif = mess[i].position.x - player.group.position.x - 1;
-              var ydif = mess[i].position.y - player.group.position.y;
-              if (
-                xdif < player.blocksize * 2 &&
-                xdif > -player.blocksize * 1 &&
-                ydif < player.blocksize * 2.1 &&
-                ydif > -player.blocksize * 2.1
-              ) {
-                hit = true;
-              }
-            }
-            if (!hit) {
-              player.group.position.x += player.blocksize;
-              player.lockcount = 5;
-            }
+            moveRight();
           }
         }
         if (player.lockcount > 0) player.lockcount--;
         if (player.spincount == 0) {
           //Q A Z - LEFT
-
           if (keys[65] || keys[81] || keys[90]) {
             spinLeft();
           }
 
           // W S X - RIGHT
-          // 0 1   >  3 0
-          // 3 2      2 1
           if (keys[83] || keys[87] || keys[88]) {
             spinRight();
           }
@@ -364,6 +325,48 @@ TODO:
         player.group.children[1].material = player.group.children[0].material;
         player.group.children[0].material = og;
         player.spincount = 15;
+      }
+      function moveLeft() {
+        //Hit detection left
+        var hit = false;
+        var mess = inactiveBlocks.children;
+        for (var i = 0; i < mess.length; i++) {
+          var xdif = mess[i].position.x - player.group.position.x + 1;
+          var ydif = mess[i].position.y - player.group.position.y;
+          if (
+            xdif < player.blocksize * 1 &&
+            xdif > -player.blocksize * 2 &&
+            ydif < player.blocksize * 2 &&
+            ydif > -player.blocksize * 2
+          ) {
+            hit = true;
+          }
+        }
+        if (!hit) {
+          player.group.position.x -= player.blocksize;
+          player.lockcount = 5;
+        }
+      }
+      function moveRight() {
+        //Hit detection
+        var hit = false;
+        var mess = inactiveBlocks.children;
+        for (var i = 0; i < mess.length; i++) {
+          var xdif = mess[i].position.x - player.group.position.x - 1;
+          var ydif = mess[i].position.y - player.group.position.y;
+          if (
+            xdif < player.blocksize * 2 &&
+            xdif > -player.blocksize * 1 &&
+            ydif < player.blocksize * 2.1 &&
+            ydif > -player.blocksize * 2.1
+          ) {
+            hit = true;
+          }
+        }
+        if (!hit) {
+          player.group.position.x += player.blocksize;
+          player.lockcount = 5;
+        }
       }
       function debugText() {
         debugtext.innerHTML =
@@ -419,7 +422,7 @@ TODO:
           safetyCounter = 0;
         } else {
           dropcounter++;
-          if (dropcounter > dropspeed || player.forcedrop) {
+          if (dropcounter > dropspeed || player.forcedrop || player.swipedrop) {
             if (player.forcedrop) player.forcedrop = false;
             player.group.position.y -= player.blocksize;
             dropcounter = 0;
@@ -554,11 +557,16 @@ TODO:
         // document.onmouseup();
 
         mouse.endTime = Date.now();
+        let elapsedTime = mouse.endTime - mouse.startTime;
         //Trigger a spin if a quick tap
-        if (mouse.endTime - mouse.startTime < 100) {
-          spinLeft();
+        if (elapsedTime < 100) {
+          spinRight(); // TODO, save a setting/state for spin left or right
         }
-
+        //Down if swiped down.
+        if (elapsedTime < 200 && Math.abs(touches[0].pageY - mouse.starty) > 200) {
+          console.log("swiped down!");
+          player.swipedrop = true;
+        }
         for (var i = 0; i < touches.length; i++) {
           var idx = ongoingTouchIndexById(touches[i].identifier);
           if (idx >= 0) {
@@ -583,6 +591,11 @@ TODO:
             mouse.x = touches[i].pageX;
             mouse.y = touches[i].pageY;
 
+            //Move left or right if dragging around
+            let xdif = player.group.position.x - mouse.x;
+
+            if (xdif > player.blocksize && player.group.position.x / player.blocksize > 1) moveLeft();
+            if (xdif < -player.blocksize && player.group.position.x / player.blocksize < width - 1) moveRight();
             ongoingTouches.splice(idx, 1, copyTouch(touches[i])); // swap in the new touch record
             // console.log(".");
           } else {
