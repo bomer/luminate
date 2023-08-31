@@ -10,6 +10,9 @@
         background-color: #000000;
         overflow: hidden;
       }
+      canvas {
+        max-height: 100%;
+      }
     </style>
   </head>
   <body>
@@ -563,7 +566,7 @@
           spinRight(); // TODO, save a setting/state for spin left or right
         }
         //Down if swiped down.
-        if (elapsedTime < 200 && Math.abs(touches[0].pageY - mouse.starty) > 200) {
+        if (elapsedTime < 200 && Math.abs(touches[0].pageY - mouse.starty) > 100) {
           console.log("swiped down!");
           player.swipedrop = true;
         }
@@ -593,9 +596,10 @@
 
             //Move left or right if dragging around
             let xdif = player.group.position.x - mouse.x;
+            console.log("Player X: " + player.group.position.x + " Tx: " + mouse.x + " and dif = " + xdif);
 
-            if (xdif > player.blocksize && player.group.position.x / player.blocksize > 1) moveLeft();
-            if (xdif < -player.blocksize && player.group.position.x / player.blocksize < width - 1) moveRight();
+            if (xdif > player.blocksize * 1.5 && player.group.position.x / player.blocksize > 1) moveLeft();
+            if (xdif < -player.blocksize * 1 && player.group.position.x / player.blocksize < width - 1) moveRight();
             ongoingTouches.splice(idx, 1, copyTouch(touches[i])); // swap in the new touch record
             // console.log(".");
           } else {
